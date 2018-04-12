@@ -22,8 +22,8 @@ markets = response_json["ticker"]["markets"]
 
 # Create dataframe
 df = pd.DataFrame({
-    'price': [int(float(market["price"])) for market in markets],
-    'volume': [int(float(market["volume"])) for market in markets],
+    'price': [float(market["price"]) for market in markets],
+    'volume': [float(market["volume"]) for market in markets],
     'group': [market["market"] for market in markets]
 })
 

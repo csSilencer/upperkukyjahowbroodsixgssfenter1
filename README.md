@@ -5,5 +5,5 @@ suber sigred proyekt
 - `brew install python@3`
 - `python3 -m venv /path/to/new/virtual/environment`
 - `source /path/to/new/virtual/environment/bin/activate`
-- `pip install seaborn`
+- `pip install -r requirements.txt`
 - `python py_app_that_uses_seaborn.py`

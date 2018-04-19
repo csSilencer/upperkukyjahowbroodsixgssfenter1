@@ -1,5 +1,6 @@
 import requests
 
+
 class CryptonatorApiService(object):
 
     def __init__(self):
@@ -32,6 +33,7 @@ class CryptonatorApiService(object):
         currency_list = self.get_currency_list()
         currency_list_symbols = [currency["code"] for currency in currency_list["rows"]]
         return currency_list_symbols
+
 
 if __name__ == "__main__":
     TestCryptonatorService = CryptonatorApiService()

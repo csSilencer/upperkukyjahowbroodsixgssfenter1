@@ -1,5 +1,6 @@
 import requests
 
+
 class CoinMarketCapApiService(object):
 
     def __init__(self):
@@ -22,7 +23,7 @@ class CoinMarketCapApiService(object):
                 self.add_cache_item(endpoint, ret)
                 return ret
 
-    ### TODO: Use some sort of url generator api to stop building strings as such
+    # TODO: Use some sort of url generator api to stop building strings as such
 
     def get_top_coin_market_cap(self, start=0, limit=100, convert="USD"):
         top_coins = self.get_cache_item(self._base_url+self._endpoints["ticker"] %
@@ -33,6 +34,7 @@ class CoinMarketCapApiService(object):
         top_coins = self.get_top_coin_market_cap(start, limit, convert)
         top_coins_symbols = [coin["symbol"] for coin in top_coins]
         return top_coins_symbols
+
 
 if __name__ == "__main__":
     TestCMService = CoinMarketCapApiService()

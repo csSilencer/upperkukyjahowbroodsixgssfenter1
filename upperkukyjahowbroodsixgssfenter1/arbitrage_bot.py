@@ -34,11 +34,13 @@ class ArbitrageBot(object):
         markets = self.retrieve_data(self.api_url)
         df = self.create_dataframe(markets)
         # basic plot
-        p1 = sns.regplot(data=df, x="price", y="volume", fit_reg=False, marker="o", color="skyblue", scatter_kws={'s':400})
+        p1 = sns.regplot(data=df, x="price", y="volume", fit_reg=False, marker="o", color="skyblue",
+                         scatter_kws={'s': 400})
 
         # # add annotations one by one with a loop
-        for line in range(0,df.shape[0]):
+        for line in range(0, df.shape[0]):
             print("price-%s, volume-%s, market-%s" % (df.price[line], df.volume[line], df.group[line]))
-            p1.text(df.price[line]+0.2, df.volume[line], df.group[line], horizontalalignment='left', size='medium', color='black', weight='semibold')
+            p1.text(df.price[line] + 0.2, df.volume[line], df.group[line], horizontalalignment='left', size='medium',
+                    color='black', weight='semibold')
 
         plt.show()

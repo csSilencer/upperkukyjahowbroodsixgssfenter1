@@ -26,7 +26,7 @@ class CryptonatorApiService(object):
                 return ret
 
     def get_currency_list(self):
-        currency_list = self.get_cache_item(self._base_url+self._endpoints["currency"])
+        currency_list = self.get_cache_item(self._base_url + self._endpoints["currency"])
         return currency_list
 
     def get_currency_list_symbols(self):

@@ -26,8 +26,8 @@ class CoinMarketCapApiService(object):
     # TODO: Use some sort of url generator api to stop building strings as such
 
     def get_top_coin_market_cap(self, start=0, limit=100, convert="USD"):
-        top_coins = self.get_cache_item(self._base_url+self._endpoints["ticker"] %
-                            (("?start=%s&limit=%s&convert=%s") % (start, limit, convert)))
+        top_coins = self.get_cache_item(self._base_url + self._endpoints["ticker"] %
+                                        ("?start=%s&limit=%s&convert=%s" % (start, limit, convert)))
         return top_coins
 
     def get_top_coin_market_cap_symbols(self, start=0, limit=100, convert="USD"):

@@ -2,7 +2,10 @@ import matplotlib.pylab as plt
 import pandas as pd
 import requests
 import seaborn as sns
-
+from services.coinmarketcap import CoinMarketCapApiService
+from services.cryptonator import CryptonatorApiService
+from coins.generic_coin import GenericCoin
+from coins.coin_matrix import CoinMatrix
 
 class ArbitrageBot(object):
     """
@@ -44,3 +47,7 @@ class ArbitrageBot(object):
                     color='black', weight='semibold')
 
         plt.show()
+
+if __name__ == "__main__":
+    TestCMService = ArbitrageBot()
+    TestCMService.get_pair_matrix()

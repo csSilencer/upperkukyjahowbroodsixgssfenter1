@@ -1,6 +1,5 @@
 import requests
 
-
 class CoinMarketCapApiService(object):
 
     def __init__(self):

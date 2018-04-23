@@ -34,8 +34,8 @@ class CoinMatrixController(object):
         print(len(coin_matrix.coin_pairs))
 
 if __name__ == "__main__":
-    testMatrix = CoinMatrix([GenericCoin("Bitcoin", "BTC"),
-                             GenericCoin("Ethereum", "ETH"),
-                             GenericCoin("Litecoin", "LTC"),
-                             GenericCoin("Monero", "XMR")])
-    print([str(coin) for coin in testMatrix.coin_pairs])
+    # testMatrix = CoinMatrix([GenericCoin("Bitcoin", "BTC"),
+    #                          GenericCoin("Ethereum", "ETH"),
+    #                          GenericCoin("Litecoin", "LTC"),
+    #                          GenericCoin("Monero", "XMR")])
+    # print([str(coin) for coin in testMatrix.coin_pairs])

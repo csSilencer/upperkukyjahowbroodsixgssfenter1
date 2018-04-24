@@ -1,6 +1,5 @@
 import requests
 
-
 class CryptonatorApiService(object):
 
     def __init__(self):

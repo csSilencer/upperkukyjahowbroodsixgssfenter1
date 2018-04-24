@@ -1,5 +1,4 @@
-from generic_coin import GenericCoin
-from coin_pair import CoinPair
+from .coin_pair import CoinPair
 
 class CoinMatrix(object):
 
@@ -24,6 +23,7 @@ class CoinMatrix(object):
         return coin_pairs
 
 if __name__ == "__main__":
+    from generic_coin import GenericCoin
     testMatrix = CoinMatrix([GenericCoin("Bitcoin", "BTC"),
                              GenericCoin("Ethereum", "ETH"),
                              GenericCoin("Litecoin", "LTC"),

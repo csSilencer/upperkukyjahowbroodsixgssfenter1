@@ -1,6 +1,6 @@
-from generic_coin import GenericCoin
-# from coin_pair import CoinPair # this works!
-from coin_matrix import CoinMatrix
+from services.coinmarketcap import CoinMarketCapApiService
+from coins.generic_coin import GenericCoin
+from coins.coin_matrix import CoinMatrix
 
 class CoinMatrixController(object):
 
@@ -34,8 +34,5 @@ class CoinMatrixController(object):
         print(len(coin_matrix.coin_pairs))
 
 if __name__ == "__main__":
-    # testMatrix = CoinMatrix([GenericCoin("Bitcoin", "BTC"),
-    #                          GenericCoin("Ethereum", "ETH"),
-    #                          GenericCoin("Litecoin", "LTC"),
-    #                          GenericCoin("Monero", "XMR")])
-    # print([str(coin) for coin in testMatrix.coin_pairs])
+    testMatrixVCtrl = CoinMatrixController()
+    testMatrixVCtrl.get_pair_matrix()

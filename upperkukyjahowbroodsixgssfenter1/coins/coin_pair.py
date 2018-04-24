@@ -1,4 +1,4 @@
-from generic_coin import GenericCoin
+from .generic_coin import GenericCoin
 
 class CoinPair(object):
 

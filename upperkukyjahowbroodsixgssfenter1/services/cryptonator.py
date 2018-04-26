@@ -19,10 +19,14 @@ class CryptonatorApiService(object):
             return self._cache[endpoint]
         else:
             req_response = requests.get(endpoint)
+            print(req_response.json())
             if req_response.status_code == 200:
                 ret = req_response.json()
                 self.add_cache_item(endpoint, ret)
                 return ret
+
+    def get_ticker_data_full(self, pair):
+        return self.get_cache_item((self._base_url + self._endpoints["tickerfull"]) % pair)
 
     def get_currency_list(self):
         currency_list = self.get_cache_item(self._base_url + self._endpoints["currency"])

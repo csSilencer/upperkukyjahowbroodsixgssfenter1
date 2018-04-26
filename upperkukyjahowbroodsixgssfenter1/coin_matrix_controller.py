@@ -26,12 +26,16 @@ class CoinMatrixController(object):
         cms_coins = cms.get_top_coin_market_cap()
         coins = []
 
-        for coin in cms_coins:
-            coins.append(GenericCoin(coin["name"], coin["symbol"]))
+        for coin in cms_coins[:2]:
+            try:
+                coins.append(GenericCoin(coin["name"], coin["symbol"]))
+            except Exception as e:
+                print(e)
 
         coin_matrix = CoinMatrix(coins)
         print([str(coin) for coin in coin_matrix.coin_pairs])
         print(len(coin_matrix.coin_pairs))
+        print([coin.get_exchange_data() for coin in coin_matrix.coin_pairs])
 
 if __name__ == "__main__":
     testMatrixVCtrl = CoinMatrixController()

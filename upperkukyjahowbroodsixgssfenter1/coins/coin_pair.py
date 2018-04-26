@@ -12,7 +12,8 @@ class CoinPair(object):
         return str(self._exchange_data)
 
     def refresh_exchange_data(self):
-        crypt_service = CryptonatorApiService()
+        crypt_service = CryptonatorApiService() #  TODO: Move this logic into service.
+        # TODO: Make this code consume a generic service, so we can swap out apis at any time
         ticker_data = crypt_service.get_ticker_data_full(str(self))
         ticker_data_reversed = crypt_service.get_ticker_data_full(self.reversed_symbol())
         if ticker_data or ticker_data_reversed:

@@ -1,11 +1,24 @@
-import ccxt, logging
+import ccxt, logging, argparse
 from triangular_arb_bot import TriangularArbBot
 
 logging.basicConfig(format='%(asctime)s: %(processName)s: %(message)s')
 logger = logging.getLogger('upperkuk')
-logger.setLevel(logging.DEBUG)
-# logger.disabled = True
+logger.setLevel(logging.INFO)
 FEE = 0.0025
+
+def get_command_line_options():
+    """
+    Return the command line parameters required by the offboarding script
+    :return: parser
+    :rtype: Namespace
+    """
+    parser = argparse.ArgumentParser(description='upperkukyjahowbroodsixgssfenter1')
+
+    parser.add_argument('-d', '--debug',
+                        help='Set the logging level to debug',
+                        required=False,
+                        default=False)
+    return parser.parse_args()
 
 def market_order(starting_amount, exchange, ticker, order_type):
 
@@ -54,6 +67,10 @@ def run():
     """
     Do the thing
     """
+    args = get_command_line_options()
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
+
     bittrex = ccxt.bittrex()
     starting_funds = 10000
     total_btc_bought = market_order(starting_funds, bittrex, 'BTC/USD', "buy")

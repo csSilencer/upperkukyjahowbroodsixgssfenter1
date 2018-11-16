@@ -34,29 +34,29 @@ def market_buy(starting_amount, exchange, symbol):
         total_fee = order_total * FEE
         order_total_inc_fee = order_total + total_fee
         logger.debug("============")
-        logger.debug(f"Funds: {funds}")
-        logger.debug(f"Price: {price}")
-        logger.debug(f"Volume: {volume}")
-        logger.debug(f"Order total: {order_total}")
-        logger.debug(f"Fee: {total_fee}")
-        logger.debug(f"Order total (inc fee): {order_total_inc_fee}")
+        logger.debug("Funds: {funds}")
+        logger.debug("Price: {price}")
+        logger.debug("Volume: {volume}")
+        logger.debug("Order total: {order_total}")
+        logger.debug("Fee: {total_fee}")
+        logger.debug("Order total (inc fee): {order_total_inc_fee}")
 
         if order_total_inc_fee < funds:
             amount_bought = volume
-            logger.debug(f"Amount bought on this order: {amount_bought}")
+            logger.debug("Amount bought on this order: {amount_bought}")
             total_amount_bought += amount_bought
             funds -= order_total_inc_fee
         else:
             percentage_of_order = funds / order_total_inc_fee
             amount_bought = percentage_of_order * volume
-            logger.debug(f"Amount bought on this order: {amount_bought}")
+            logger.debug("Amount bought on this order: {amount_bought}")
             total_amount_bought += amount_bought
             funds -= order_total_inc_fee * percentage_of_order
             assert funds == 0, "There seems to be a miscalculation somewhere, exiting.."
 
         logger.debug("")
-        logger.debug(f"Remaining funds: {funds} {symbol.split('/')[1]}")
-        logger.debug(f"Total amount bought: {total_amount_bought} {symbol.split('/')[0]}")
+        logger.debug("Remaining funds: {funds} {symbol.split('/')[1]}")
+        logger.debug("Total amount bought: {total_amount_bought} {symbol.split('/')[0]}")
         logger.debug("")
 
         if funds == 0:
@@ -68,8 +68,8 @@ def run_market_buy(exchange):
     symbol = 'BTC/USD'
     total_amount_bought = market_buy(starting_funds, exchange, symbol)
 
-    logger.info(f"Starting funds: {starting_funds} {symbol.split('/')[1]}")
-    logger.info(f"Total amount bought: {total_amount_bought} {symbol.split('/')[0]}")
+    logger.info("Starting funds: {starting_funds} {symbol.split('/')[1]}")
+    logger.info("Total amount bought: {total_amount_bought} {symbol.split('/')[0]}")
 
 
 def get_closed_loops(exchange):

@@ -63,6 +63,47 @@ def market_buy(starting_amount, exchange, symbol):
             return total_amount_bought
 
 
+def run_market_buy(exchange):
+    starting_funds = 10000
+    symbol = 'BTC/USD'
+    total_amount_bought = market_buy(starting_funds, exchange, symbol)
+
+    logger.info(f"Starting funds: {starting_funds} {symbol.split('/')[1]}")
+    logger.info(f"Total amount bought: {total_amount_bought} {symbol.split('/')[0]}")
+
+
+def get_closed_loops(exchange):
+    exchange.load_markets()
+    symbols = exchange.symbols
+
+    # Find secondary currencies
+    secondary_currencies = []
+    for sym in symbols:
+        if sym.split('/')[1] not in secondary_currencies:
+            secondary_currencies.append(sym.split('/')[1])
+
+    logger.info("Secondary currencies:")
+    for sec in secondary_currencies:
+        logger.info(sec)
+
+    # Find a valid triangular market loop
+    market_loops = []
+    for sym in symbols:
+        for sec in secondary_currencies:
+            pair_a = sym.split('/')[0] + '/' + sec
+            pair_b = sym.split('/')[1] + '/' + sec
+            if pair_a in symbols and pair_a != sym and pair_b in symbols and pair_b != sym:
+                logger.debug("Triangular market found!")
+                logger.debug(sym)
+                logger.debug(pair_a)
+                logger.debug(pair_b)
+                logger.debug("============")
+                market_loops.append([sym, pair_a, pair_b])
+
+    for loop in market_loops:
+        logger.info(loop)
+
+
 def run():
     """
     Do the thing
@@ -72,12 +113,8 @@ def run():
         logger.setLevel(logging.DEBUG)
 
     bittrex = ccxt.bittrex()
-    starting_funds = 10000
-    symbol = 'BTC/USD'
-    total_amount_bought = market_buy(starting_funds, bittrex, symbol)
-
-    logger.info(f"Starting funds: {starting_funds} {symbol.split('/')[1]}")
-    logger.info(f"Total amount bought: {total_amount_bought} {symbol.split('/')[0]}")
+    # run_market_buy(bittrex)
+    get_closed_loops(bittrex)
 
 
 if __name__ == '__main__':

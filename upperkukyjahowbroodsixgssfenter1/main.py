@@ -20,16 +20,15 @@ def get_command_line_options():
                         default=False)
     return parser.parse_args()
 
-def market_order(starting_amount, exchange, ticker, order_type):
-
-    # if
-    btc_usd_bids = exchange.fetch_order_book(ticker)['bids']
-    btc_usd_asks = exchange.fetch_order_book(ticker)['asks']
-
+def market_buy(starting_amount, exchange, symbol):
+    """
+    Calculates how much of a coin you can buy with a given starting amount
+    """
+    asks = exchange.fetch_order_book(symbol)['asks']
     funds = starting_amount
-    total_btc_bought = 0
+    total_amount_bought = 0
 
-    for ask in btc_usd_asks:
+    for ask in asks:
         price, volume = ask
         order_total = price * volume
         total_fee = order_total * FEE
@@ -43,25 +42,26 @@ def market_order(starting_amount, exchange, ticker, order_type):
         logger.debug(f"Order total (inc fee): {order_total_inc_fee}")
 
         if order_total_inc_fee < funds:
-            btc_bought = volume
-            logger.debug(f"BTC bought on this order: {btc_bought}")
-            total_btc_bought += btc_bought
+            amount_bought = volume
+            logger.debug(f"Amount bought on this order: {amount_bought}")
+            total_amount_bought += amount_bought
             funds -= order_total_inc_fee
         else:
             percentage_of_order = funds / order_total_inc_fee
-            btc_bought = percentage_of_order * volume
-            logger.debug(f"BTC bought on this order: {btc_bought}")
-            total_btc_bought += btc_bought
-            logger.debug(f"Cost of this order: {order_total_inc_fee * percentage_of_order}")
+            amount_bought = percentage_of_order * volume
+            logger.debug(f"Amount bought on this order: {amount_bought}")
+            total_amount_bought += amount_bought
             funds -= order_total_inc_fee * percentage_of_order
+            assert funds == 0, "There seems to be a miscalculation somewhere, exiting.."
 
         logger.debug("")
-        logger.debug(f"Remaining funds: {funds}")
-        logger.debug(f"Total BTC bought: {total_btc_bought}")
+        logger.debug(f"Remaining funds: {funds} {symbol.split('/')[1]}")
+        logger.debug(f"Total amount bought: {total_amount_bought} {symbol.split('/')[0]}")
         logger.debug("")
 
         if funds == 0:
-            return total_btc_bought
+            return total_amount_bought
+
 
 def run():
     """
@@ -73,9 +73,11 @@ def run():
 
     bittrex = ccxt.bittrex()
     starting_funds = 10000
-    total_btc_bought = market_order(starting_funds, bittrex, 'BTC/USD', "buy")
-    logger.info(f"Starting funds: {starting_funds}")
-    logger.info(f"Total BTC bought: {total_btc_bought}")
+    symbol = 'BTC/USD'
+    total_amount_bought = market_buy(starting_funds, bittrex, symbol)
+
+    logger.info(f"Starting funds: {starting_funds} {symbol.split('/')[1]}")
+    logger.info(f"Total amount bought: {total_amount_bought} {symbol.split('/')[0]}")
 
 
 if __name__ == '__main__':

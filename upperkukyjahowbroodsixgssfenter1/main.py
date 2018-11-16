@@ -21,52 +21,48 @@ def get_command_line_options():
     return parser.parse_args()
 
 def arbitrage(cycle_num=3, cycle_time=10):
-    print("Arbitrage Function Running")
+    logger.debug("Arbitrage Function Running")
     fee_percentage = 0.001          #divided by 100
     coins = ['BTC', 'LTC', 'ETH']   #Coins to Arbitrage
-    # exchange_list = ['binance', 'bittrex', 'bitfinex', 'kraken', 'theocean']
     exchange_list = ['bittrex']
-    for exch in ccxt.exchanges:    #initialize Exchange
-        exchange1 = getattr (ccxt, exch) ()
+    for exch in exchange_list:    #initialize Exchange
+        exchange_obj = getattr (ccxt, exch) ()
         if exch not in exchange_list:
             continue
-        print("Loading markets for exchange: ", exchange1)
-        exchange1.load_markets()
-        symbols = exchange1.symbols
-        print(exchange1.symbols)
+        logger.info("Loading markets for exchange: ", exchange_obj)
+        exchange_obj.load_markets()
+        symbols = exchange_obj.symbols
+        logger.debug(exchange_obj.symbols)
         if symbols is None:
-            print("Skipping Exchange ", exch)
-            print("\n-----------------\nNext Exchange\n-----------------")
+            logger.info("Skipping Exchange ", exch)
+            logger.info("\n-----------------\nNext Exchange\n-----------------")
         elif len(symbols)<15:
-            print("\n-----------------\nNeed more Pairs (Next Exchange)\n-----------------")
+            logger.debug("\n-----------------\nNeed more Pairs (Next Exchange)\n-----------------")
         else:
-            print(exchange1)
-            print("------------Exchange: ", exchange1.id)
-            time.sleep(5)
+            logger.debug(exchange_obj)
+            logger.info("------------Exchange: ", exchange_obj.id)
+
             #Find Currencies Trading Pairs to Trade
             pairs = []
             for sym in symbols:
                 for symbol in coins:
                     if symbol in sym:  # IF BTC IN BTC/AUD - etc.
-                        print("Coin: %s- is in symbol: %s" % (symbol, sym))
+                        logger.debug("Coin: %s- is in symbol: %s" % (symbol, sym))
                         pairs.append(sym)
-            #  From Coin 1 to Coin 2 - ETH/BTC - Bid
-            #  From Coin 2 to Coin 3 - ETH/LTC - Ask
-            #  From Coin 3 to Coin 1 - BTC/LTC - Bid
-            closed_loops = get_closed_loops(symbols[:10])
+
+            closed_loops = get_closed_loops(pairs)
             # Find 'closed loop' of currency rate pairs
             for loop in closed_loops:
-                print("Closed loop: ", loop)
+                logger.debug("Closed loop: ", loop)
                 list_exch_rate_list = []
                 for k in range(0,cycle_num):
                     i=0
                     exch_rate_list = []
-                    print("Cycle Number: ", k)
+                    logger.debug("Cycle Number: ", k)
                     for sym in loop:
-                        print(sym)
+                        logger.debug(sym)
                         if sym in symbols:
-                            depth = exchange1.fetch_order_book(symbol=sym)
-                            #pprint(depth)
+                            depth = exchange_obj.fetch_order_book(symbol=sym)
                             if i % 2 == 0:
                                 exch_rate_list.append(depth['bids'][0][0] * 1.0025)
                             else:
@@ -74,18 +70,19 @@ def arbitrage(cycle_num=3, cycle_time=10):
                             i+=1
                         else:
                             exch_rate_list.append(0)
-                    #exch_rate_list.append(((rateB[-1]-rateA[-1])/rateA[-1])*100)  #Expected Profit
                     exch_rate_list.append(time.time())      #change to Human Readable time
-                    print(exch_rate_list)
+                    logger.debug(exch_rate_list)
+
                     #Compare to determine if Arbitrage opp exists
                     if exch_rate_list[0]<exch_rate_list[1]/exch_rate_list[2]:
-                        print("Arbitrage Possibility")
+                        logger.info("Arbitrage Possibility")
                     else:
-                        print("No Arbitrage Possibility")
+                        logger.info("No Arbitrage Possibility")
+
                     #Format data (list) into List format (list of lists)
                     list_exch_rate_list.append(exch_rate_list)
                     time.sleep(cycle_time)
-                print(list_exch_rate_list)
+                logger.debug(list_exch_rate_list)
                 #Create list from Lists for matplotlib format
                 rateA = []      #Original Exchange Rate
                 rateB = []      #Calculated/Arbitrage Exchange Rate
@@ -102,7 +99,7 @@ def arbitrage(cycle_num=3, cycle_time=10):
                     price2.append(rate[2])
                     #profit.append((rateB[-1]-rateA[-1])/rateA[-1])
                     time_list.append(rate[3])
-                print("Rate A: {} \n Rate B: {} \n Rate C: {} \n".format(rateA, rateB, rateB_fee))
+                logger.debug(f"Rate A: {rateA} \n Rate B: {rateB} \n Rate C: rateB_fee \n")
 
 def market_buy(starting_amount, exchange, symbol):
     """

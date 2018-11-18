@@ -1,7 +1,5 @@
 import ccxt, logging, argparse, time
 # from triangular_arb_bot import TriangularArbBot
-
-logging.basicConfig(format='%(asctime)s: %(processName)s: %(message)s')
 logger = logging.getLogger('upperkuk')
 logger.setLevel(logging.INFO)
 FEE = 0.0025
@@ -18,10 +16,14 @@ def get_command_line_options():
                         help='Set the logging level to debug',
                         required=False,
                         default=False)
+    parser.add_argument('-f', '--fee_flag',
+                        help='Turn the fee calculation on or off',
+                        required=False,
+                        default=True)
     return parser.parse_args()
 
 
-def arbitrage(cycle_num=3, cycle_time=10):
+def arbitrage(cycle_num=3, cycle_time=10, fee_flag=True):
     logger.debug("Arbitrage Function Running")
     fee_percentage = 0.001          #divided by 100
     coins = ['BTC', 'LTC', 'ETH']   #Coins to Arbitrage
@@ -45,20 +47,27 @@ def arbitrage(cycle_num=3, cycle_time=10):
             closed_loops = get_closed_loops(symbols)
             # Find 'closed loop' of currency rate pairs
             for loop in closed_loops:
-                calculate_buy_cycle(exchange_obj, loop)
-                calculate_sell_cycle(exchange_obj, loop)
+                calculate_buy_cycle(exchange_obj, loop, fee_flag=fee_flag)
+                calculate_sell_cycle(exchange_obj, loop, fee_flag=fee_flag)
 
 
-def calculate_buy_cycle(exchange_obj, loop):
-    logger.info(f"Closed loop: {loop}")
+def calculate_buy_cycle(exchange_obj, loop, fee_flag=True):
+    logger.info(f"Buy cycle on closed loop: {loop} fee: {fee_flag}")
 
     order_books = []
     for sym in loop:
         order_books.append(exchange_obj.fetch_order_book(symbol=sym))
 
-    a = order_books[0]['asks'][0][0] * (1 + 0.0025)
-    b = order_books[1]['bids'][0][0] * (1 - 0.0025)
-    c = order_books[2]['asks'][0][0] * (1 + 0.0025)
+    if fee_flag:
+        fee_bid = 1-0.0025
+        fee_ask = 1+0.0025
+    else:
+        fee_bid = 1
+        fee_ask = 1
+
+    a = order_books[0]['asks'][0][0] * fee_ask
+    b = order_books[1]['bids'][0][0] * fee_bid
+    c = order_books[2]['asks'][0][0] * fee_ask
 
     # Compare to determine if Arbitrage opp exists
     # eg.
@@ -75,16 +84,23 @@ def calculate_buy_cycle(exchange_obj, loop):
         logger.info(f"No Arbitrage possibility on {loop[1].split('/')[1]} --> {loop[0].split('/')[1]} --> {loop[0].split('/')[0]}")
 
 
-def calculate_sell_cycle(exchange_obj, loop):
-    logger.info(f"Closed loop: {loop}")
+def calculate_sell_cycle(exchange_obj, loop, fee_flag=True):
+    logger.info(f"Sell cycle on closed loop: {loop} fee: {fee_flag}")
 
     order_books = []
     for sym in loop:
         order_books.append(exchange_obj.fetch_order_book(symbol=sym))
 
-    a = order_books[0]['bids'][0][0] * (1 - 0.0025)
-    b = order_books[1]['asks'][0][0] * (1 + 0.0025)
-    c = order_books[2]['bids'][0][0] * (1 - 0.0025)
+    if fee_flag:
+        fee_bid = 1-0.0025
+        fee_ask = 1+0.0025
+    else:
+        fee_bid = 1
+        fee_ask = 1
+
+    a = order_books[0]['bids'][0][0] * fee_bid
+    b = order_books[1]['asks'][0][0] * fee_ask
+    c = order_books[2]['bids'][0][0] * fee_bid
 
     # Compare to determine if Arbitrage opp exists
     # eg.
@@ -97,7 +113,7 @@ def calculate_sell_cycle(exchange_obj, loop):
         logger.info(f"Arbitrage Possibility: {loop[0]}: {lhs} > {loop[1]} / {loop[2]}: {rhs}")
         logger.info(f"{loop[1].split('/')[1]} --> {loop[0].split('/')[0]} --> {loop[0].split('/')[1]}")
         logger.info(f"Spread: {lhs/rhs}")
-        else:
+    else:
         logger.info(f"No Arbitrage possibility on {loop[1].split('/')[1]} --> {loop[0].split('/')[0]} --> {loop[0].split('/')[1]}")
 
 
@@ -191,10 +207,13 @@ def run():
     if args.debug:
         logger.setLevel(logging.DEBUG)
 
+    log_name = f"arb_logs_fees_{args.fee_flag}"
+
+    logging.basicConfig(filename=log_name, format='%(asctime)s: %(processName)s: %(message)s')
     # bittrex = ccxt.bittrex()
     # run_market_buy(bittrex)
     # get_closed_loops(bittrex)
-    arbitrage()
+    arbitrage(fee_flag=args.fee_flag)
 
 if __name__ == '__main__':
     run()

@@ -29,59 +29,59 @@ def arbitrage(cycle_num=3, cycle_time=10):
         exchange_obj = getattr (ccxt, exch) ()
         if exch not in exchange_list:
             continue
-        logger.info("Loading markets for exchange: ", exchange_obj)
+        logger.info(f"Loading markets for exchange: {exchange_obj}")
         exchange_obj.load_markets()
         symbols = exchange_obj.symbols
         logger.debug(exchange_obj.symbols)
         if symbols is None:
-            logger.info("Skipping Exchange ", exch)
+            logger.info(f"Skipping Exchange {exch}")
             logger.info("\n-----------------\nNext Exchange\n-----------------")
         elif len(symbols)<15:
             logger.debug("\n-----------------\nNeed more Pairs (Next Exchange)\n-----------------")
         else:
             logger.debug(exchange_obj)
-            logger.info("------------Exchange: ", exchange_obj.id)
-
-            #Find Currencies Trading Pairs to Trade
-            pairs = []
-            for sym in symbols:
-                for symbol in coins:
-                    if symbol in sym:  # IF BTC IN BTC/AUD - etc.
-                        logger.debug("Coin: %s- is in symbol: %s" % (symbol, sym))
-                        pairs.append(sym)
-
-            closed_loops = get_closed_loops(pairs)
+            logger.info(f"------------Exchange: {exchange_obj.id}")
+            closed_loops = get_closed_loops(symbols)
             # Find 'closed loop' of currency rate pairs
             for loop in closed_loops:
-                logger.debug("Closed loop: ", loop)
+                logger.info(f"Closed loop: {loop}")
                 list_exch_rate_list = []
-                for k in range(0,cycle_num):
-                    i=0
-                    exch_rate_list = []
-                    logger.debug("Cycle Number: ", k)
-                    for sym in loop:
-                        logger.debug(sym)
-                        if sym in symbols:
-                            depth = exchange_obj.fetch_order_book(symbol=sym)
-                            if i % 2 == 0:
-                                exch_rate_list.append(depth['bids'][0][0] * 1.0025)
-                            else:
-                                exch_rate_list.append(depth['asks'][0][0] * 1.0025)
-                            i+=1
-                        else:
-                            exch_rate_list.append(0)
-                    exch_rate_list.append(time.time())      #change to Human Readable time
-                    logger.debug(exch_rate_list)
-
-                    #Compare to determine if Arbitrage opp exists
-                    if exch_rate_list[0]<exch_rate_list[1]/exch_rate_list[2]:
-                        logger.info("Arbitrage Possibility")
+                i=0
+                exch_rate_list = []
+                buy_cycle = ['asks', 'bids', 'asks']
+                sell_cycle = ['bids', 'asks', 'bids']
+                for sym in loop:
+                    logger.debug(sym)
+                    if sym in symbols:
+                        depth = exchange_obj.fetch_order_book(symbol=sym)
+                        # if i % 2 == 0:
+                        #     exch_rate_list.append(depth['asks'][0][0] * 1.0025)
+                        # else:
+                        #     exch_rate_list.append(depth['bids'][0][0] * 1.0025)
+                        # i+=1
+                        exch_rate_list.append(depth[buy_cycle[i]][0][0] * (1 + 0.0025))
+                        i+=1
                     else:
-                        logger.info("No Arbitrage Possibility")
+                        exch_rate_list.append(0)
 
-                    #Format data (list) into List format (list of lists)
-                    list_exch_rate_list.append(exch_rate_list)
-                    time.sleep(cycle_time)
+                exch_rate_list.append(time.time())      #change to Human Readable time
+                logger.debug(exch_rate_list)
+
+                #Compare to determine if Arbitrage opp exists
+                lhs = exch_rate_list[0]
+                rhs = exch_rate_list[1]/exch_rate_list[2]
+                if lhs < rhs:  #  Cycle exists
+                    # ETH/BTC < (ETH/USD / BTC/USD) === ETH/BTC < (ETH / BTC)
+                    logger.info(f"Arbitrage Possibility: {loop[0]}: {lhs} < {loop[1]} / {loop[2]}: {rhs}")
+                    logger.info(f"{loop[1].split('/')[1]} --> {loop[0].split('/')[1]} --> {loop[0].split('/')[0]}")
+                    logger.info(f"Spread: {rhs/lhs}")
+                else:
+                    logger.info(f"Arbitrage Possibility: {loop[0]}: {lhs} < {loop[1]} / {loop[2]}: {rhs}")
+                    logger.info(f"{loop[1].split('/')[1]} --> {loop[0].split('/')[1]} --> {loop[0].split('/')[0]}")
+                    logger.info(f"Spread: {rhs/lhs}")
+
+                #Format data (list) into List format (list of lists)
+                list_exch_rate_list.append(exch_rate_list)
                 logger.debug(list_exch_rate_list)
                 #Create list from Lists for matplotlib format
                 rateA = []      #Original Exchange Rate
@@ -99,7 +99,7 @@ def arbitrage(cycle_num=3, cycle_time=10):
                     price2.append(rate[2])
                     #profit.append((rateB[-1]-rateA[-1])/rateA[-1])
                     time_list.append(rate[3])
-                logger.debug(f"Rate A: {rateA} \n Rate B: {rateB} \n Rate C: rateB_fee \n")
+                logger.debug(f"Rate A: {rateA} \n Rate B: {rateB} \n Rate C: {rateB_fee} \n")
 
 def market_buy(starting_amount, exchange, symbol):
     """
@@ -159,9 +159,9 @@ def get_closed_loops(symbols):
         if sym.split('/')[1] not in secondary_currencies:
             secondary_currencies.append(sym.split('/')[1])
 
-    logger.info("Secondary currencies:")
+    logger.debug("Secondary currencies:")
     for sec in secondary_currencies:
-        logger.info(sec)
+        logger.debug(sec)
 
     # Find a valid triangular market loop
     market_loops = []
@@ -178,7 +178,7 @@ def get_closed_loops(symbols):
                 market_loops.append([sym, pair_a, pair_b])
 
     for loop in market_loops:
-        logger.info(loop)
+        logger.debug(loop)
 
     return market_loops
 

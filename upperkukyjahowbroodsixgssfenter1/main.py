@@ -20,6 +20,7 @@ def get_command_line_options():
                         default=False)
     return parser.parse_args()
 
+
 def arbitrage(cycle_num=3, cycle_time=10):
     logger.debug("Arbitrage Function Running")
     fee_percentage = 0.001          #divided by 100
@@ -44,62 +45,61 @@ def arbitrage(cycle_num=3, cycle_time=10):
             closed_loops = get_closed_loops(symbols)
             # Find 'closed loop' of currency rate pairs
             for loop in closed_loops:
-                logger.info(f"Closed loop: {loop}")
-                list_exch_rate_list = []
-                i=0
-                exch_rate_list = []
-                buy_cycle = ['asks', 'bids', 'asks']
-                sell_cycle = ['bids', 'asks', 'bids']
-                for sym in loop:
-                    logger.debug(sym)
-                    if sym in symbols:
-                        depth = exchange_obj.fetch_order_book(symbol=sym)
-                        # if i % 2 == 0:
-                        #     exch_rate_list.append(depth['asks'][0][0] * 1.0025)
-                        # else:
-                        #     exch_rate_list.append(depth['bids'][0][0] * 1.0025)
-                        # i+=1
-                        exch_rate_list.append(depth[buy_cycle[i]][0][0] * (1 + 0.0025))
-                        i+=1
-                    else:
-                        exch_rate_list.append(0)
+                calculate_buy_cycle(exchange_obj, loop)
+                calculate_sell_cycle(exchange_obj, loop)
 
-                exch_rate_list.append(time.time())      #change to Human Readable time
-                logger.debug(exch_rate_list)
 
-                #Compare to determine if Arbitrage opp exists
-                lhs = exch_rate_list[0]
-                rhs = exch_rate_list[1]/exch_rate_list[2]
-                if lhs < rhs:  #  Cycle exists
-                    # ETH/BTC < (ETH/USD / BTC/USD) === ETH/BTC < (ETH / BTC)
-                    logger.info(f"Arbitrage Possibility: {loop[0]}: {lhs} < {loop[1]} / {loop[2]}: {rhs}")
-                    logger.info(f"{loop[1].split('/')[1]} --> {loop[0].split('/')[1]} --> {loop[0].split('/')[0]}")
-                    logger.info(f"Spread: {rhs/lhs}")
-                else:
-                    logger.info(f"Arbitrage Possibility: {loop[0]}: {lhs} < {loop[1]} / {loop[2]}: {rhs}")
-                    logger.info(f"{loop[1].split('/')[1]} --> {loop[0].split('/')[1]} --> {loop[0].split('/')[0]}")
-                    logger.info(f"Spread: {rhs/lhs}")
+def calculate_buy_cycle(exchange_obj, loop):
+    logger.info(f"Closed loop: {loop}")
 
-                #Format data (list) into List format (list of lists)
-                list_exch_rate_list.append(exch_rate_list)
-                logger.debug(list_exch_rate_list)
-                #Create list from Lists for matplotlib format
-                rateA = []      #Original Exchange Rate
-                rateB = []      #Calculated/Arbitrage Exchange Rate
-                rateB_fee = []  #Include Transaction Fee
-                price1 = []     #List for Price of Token (Trade) 1
-                price2 = []     #List for price of Token (Trade) 2
-                time_list = []  #time of data collection
-                #profit = []     #Record % profit
-                for rate in list_exch_rate_list:
-                    rateA.append(rate[0])
-                    rateB.append(rate[1]/rate[2])
-                    rateB_fee.append((rate[1]/rate[2])*(1-fee_percentage)*(1-fee_percentage))
-                    price1.append(rate[1])
-                    price2.append(rate[2])
-                    #profit.append((rateB[-1]-rateA[-1])/rateA[-1])
-                    time_list.append(rate[3])
-                logger.debug(f"Rate A: {rateA} \n Rate B: {rateB} \n Rate C: {rateB_fee} \n")
+    order_books = []
+    for sym in loop:
+        order_books.append(exchange_obj.fetch_order_book(symbol=sym))
+
+    a = order_books[0]['asks'][0][0] * (1 + 0.0025)
+    b = order_books[1]['bids'][0][0] * (1 - 0.0025)
+    c = order_books[2]['asks'][0][0] * (1 + 0.0025)
+
+    # Compare to determine if Arbitrage opp exists
+    # eg.
+    # a = ETH/BTC, b = ETH/USD, c = BTC/USD
+    #   ETH/BTC < (ETH/USD / BTC/USD)
+    # = ETH/BTC < (ETH / BTC)
+    lhs = a
+    rhs = b / c
+    if lhs < rhs:  #  Cycle exists
+        logger.info(f"Arbitrage Possibility: {loop[0]}: {lhs} < {loop[1]} / {loop[2]}: {rhs}")
+        logger.info(f"{loop[1].split('/')[1]} --> {loop[0].split('/')[1]} --> {loop[0].split('/')[0]}")
+        logger.info(f"Spread: {rhs/lhs}")
+    else:
+        logger.info(f"No Arbitrage possibility on {loop[1].split('/')[1]} --> {loop[0].split('/')[1]} --> {loop[0].split('/')[0]}")
+
+
+def calculate_sell_cycle(exchange_obj, loop):
+    logger.info(f"Closed loop: {loop}")
+
+    order_books = []
+    for sym in loop:
+        order_books.append(exchange_obj.fetch_order_book(symbol=sym))
+
+    a = order_books[0]['bids'][0][0] * (1 - 0.0025)
+    b = order_books[1]['asks'][0][0] * (1 + 0.0025)
+    c = order_books[2]['bids'][0][0] * (1 - 0.0025)
+
+    # Compare to determine if Arbitrage opp exists
+    # eg.
+    # a = ETH/BTC, b = ETH/USD, c = BTC/USD
+    #   ETH/BTC > (ETH/USD / BTC/USD)
+    # = ETH/BTC > (ETH / BTC)
+    lhs = a
+    rhs = b / c
+    if lhs > rhs:  #  Cycle exists
+        logger.info(f"Arbitrage Possibility: {loop[0]}: {lhs} > {loop[1]} / {loop[2]}: {rhs}")
+        logger.info(f"{loop[1].split('/')[1]} --> {loop[0].split('/')[0]} --> {loop[0].split('/')[1]}")
+        logger.info(f"Spread: {lhs/rhs}")
+        else:
+        logger.info(f"No Arbitrage possibility on {loop[1].split('/')[1]} --> {loop[0].split('/')[0]} --> {loop[0].split('/')[1]}")
+
 
 def market_buy(starting_amount, exchange, symbol):
     """

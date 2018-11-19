@@ -46,10 +46,10 @@ def arbitrage(cycle_num=3, cycle_time=10, fee_flag=True):
             logger.info(f"------------Exchange: {exchange_obj.id}")
             closed_loops = get_closed_loops(symbols)
             # Find 'closed loop' of currency rate pairs
-            for loop in closed_loops:
-                calculate_buy_cycle(exchange_obj, loop, fee_flag=fee_flag)
-                calculate_sell_cycle(exchange_obj, loop, fee_flag=fee_flag)
-
+            while True:
+                for loop in closed_loops:
+                    calculate_buy_cycle(exchange_obj, loop, fee_flag=fee_flag)
+                    calculate_sell_cycle(exchange_obj, loop, fee_flag=fee_flag)
 
 def calculate_buy_cycle(exchange_obj, loop, fee_flag=True):
     logger.info(f"Buy cycle on closed loop: {loop} fee: {fee_flag}")
@@ -83,7 +83,6 @@ def calculate_buy_cycle(exchange_obj, loop, fee_flag=True):
     else:
         logger.info(f"No Arbitrage possibility on {loop[1].split('/')[1]} --> {loop[0].split('/')[1]} --> {loop[0].split('/')[0]}")
 
-
 def calculate_sell_cycle(exchange_obj, loop, fee_flag=True):
     logger.info(f"Sell cycle on closed loop: {loop} fee: {fee_flag}")
 
@@ -115,7 +114,6 @@ def calculate_sell_cycle(exchange_obj, loop, fee_flag=True):
         logger.info(f"Spread: {lhs/rhs}")
     else:
         logger.info(f"No Arbitrage possibility on {loop[1].split('/')[1]} --> {loop[0].split('/')[0]} --> {loop[0].split('/')[1]}")
-
 
 def market_buy(starting_amount, exchange, symbol):
     """

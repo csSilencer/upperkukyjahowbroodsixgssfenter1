@@ -37,5 +37,5 @@ class CryptonatorApiService(object):
 
 if __name__ == "__main__":
     TestCryptonatorService = CryptonatorApiService()
-    print(TestCryptonatorService.get_currency_list())
-    print(TestCryptonatorService.get_currency_list_symbols())
+    logger.debug(TestCryptonatorService.get_currency_list())
+    logger.debug(TestCryptonatorService.get_currency_list_symbols())

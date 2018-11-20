@@ -39,7 +39,7 @@ class ArbitrageBot(object):
 
         # # add annotations one by one with a loop
         for line in range(0, df.shape[0]):
-            print("price-%s, volume-%s, market-%s" % (df.price[line], df.volume[line], df.group[line]))
+            logger.debug("price-%s, volume-%s, market-%s" % (df.price[line], df.volume[line], df.group[line]))
             p1.text(df.price[line] + 0.2, df.volume[line], df.group[line], horizontalalignment='left', size='medium',
                     color='black', weight='semibold')
 

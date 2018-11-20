@@ -1,2 +1,1 @@
-requests==2.18.4
-seaborn==0.8.1
+ccxt

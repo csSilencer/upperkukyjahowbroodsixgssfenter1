@@ -38,6 +38,6 @@ class CoinMarketCapApiService(object):
 
 if __name__ == "__main__":
     TestCMService = CoinMarketCapApiService()
-    print(TestCMService.get_top_coin_market_cap())
-    print(TestCMService.get_top_coin_market_cap_symbols())
-    # print(TestCMService._cache)
+    logger.debug(TestCMService.get_top_coin_market_cap())
+    logger.debug(TestCMService.get_top_coin_market_cap_symbols())
+    # logger.debug(TestCMService._cache)

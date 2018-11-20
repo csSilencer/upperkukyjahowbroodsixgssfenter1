@@ -64,9 +64,15 @@ def calculate_buy_cycle(order_books, loop, fee_flag=True):
         fee_bid = 1
         fee_ask = 1
 
+    # Get prices
     a = order_books[0]['asks'][0][0] * fee_ask
     b = order_books[1]['bids'][0][0] * fee_bid
     c = order_books[2]['asks'][0][0] * fee_ask
+
+    # Get volume
+    a_vol = order_books[0]['asks'][0][1]
+    b_vol = order_books[1]['bids'][0][1]
+    c_vol = order_books[2]['asks'][0][1]
 
     # Compare to determine if Arbitrage opp exists
     # eg.
@@ -79,6 +85,7 @@ def calculate_buy_cycle(order_books, loop, fee_flag=True):
         logger.info(f"Arbitrage Possibility: {loop[0]}: {lhs} < {loop[1]} / {loop[2]}: {rhs}")
         logger.info(f"{loop[1].split('/')[1]} --> {loop[0].split('/')[1]} --> {loop[0].split('/')[0]}")
         logger.info(f"Spread: {rhs/lhs}")
+        logger.info(f"Minimum volume: {min(a_vol, b_vol, c_vol)}")
     else:
         logger.info(f"No Arbitrage possibility on {loop[1].split('/')[1]} --> {loop[0].split('/')[1]} --> {loop[0].split('/')[0]}")
 
@@ -96,6 +103,11 @@ def calculate_sell_cycle(order_books, loop, fee_flag=True):
     b = order_books[1]['asks'][0][0] * fee_ask
     c = order_books[2]['bids'][0][0] * fee_bid
 
+    # Get volume
+    a_vol = order_books[0]['bids'][0][1]
+    b_vol = order_books[1]['asks'][0][1]
+    c_vol = order_books[2]['bids'][0][1]
+
     # Compare to determine if Arbitrage opp exists
     # eg.
     # a = ETH/BTC, b = ETH/USD, c = BTC/USD
@@ -107,6 +119,7 @@ def calculate_sell_cycle(order_books, loop, fee_flag=True):
         logger.info(f"Arbitrage Possibility: {loop[0]}: {lhs} > {loop[1]} / {loop[2]}: {rhs}")
         logger.info(f"{loop[1].split('/')[1]} --> {loop[0].split('/')[0]} --> {loop[0].split('/')[1]}")
         logger.info(f"Spread: {lhs/rhs}")
+        logger.info(f"Minimum volume: {min(a_vol, b_vol, c_vol)}")
     else:
         logger.info(f"No Arbitrage possibility on {loop[1].split('/')[1]} --> {loop[0].split('/')[0]} --> {loop[0].split('/')[1]}")
 

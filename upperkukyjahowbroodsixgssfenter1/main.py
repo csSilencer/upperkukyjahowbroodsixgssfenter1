@@ -55,6 +55,7 @@ def arbitrage(cycle_num=3, cycle_time=10, fee_flag=True):
                     calculate_sell_cycle(order_books, loop, fee_flag=fee_flag)
 
 def calculate_buy_cycle(order_books, loop, fee_flag=True):
+    logger.info("")
     logger.info(f"Buy cycle on closed loop: {loop} fee: {fee_flag}")
 
     if fee_flag:
@@ -65,27 +66,44 @@ def calculate_buy_cycle(order_books, loop, fee_flag=True):
         fee_ask = 1
 
     # Get prices
-    a = order_books[0]['asks'][0][0] * fee_ask
-    b = order_books[1]['bids'][0][0] * fee_bid
-    c = order_books[2]['asks'][0][0] * fee_ask
+    a_ask = order_books[0]['asks'][0][0] * fee_ask
+    b_bid = order_books[1]['bids'][0][0] * fee_bid
+    b_ask = order_books[1]['asks'][0][0] * fee_ask
+    c_ask = order_books[2]['asks'][0][0] * fee_ask
 
     # Get volume
     a_vol = order_books[0]['asks'][0][1]
     b_vol = order_books[1]['bids'][0][1]
     c_vol = order_books[2]['asks'][0][1]
+    logger.info("In primary currency")
+    logger.info(f"a_vol: {a_vol}, b_vol: {b_vol}, c_vol: {c_vol}")
+
+    # ['A/B', 'A/X', 'B/X']
+    a_vol_in_sec = a_vol * b_ask
+    b_vol_in_sec = b_vol * b_bid
+    c_vol_in_sec = c_vol * c_ask
+    logger.info(f"In terms of {loop[1].split('/')[1]}")
+    logger.info(f"a_vol: {a_vol_in_sec}, b_vol: {b_vol_in_sec}, c_vol: {c_vol_in_sec}")
+    logger.info(f"Minimum volume: {min(a_vol_in_sec, b_vol_in_sec, c_vol_in_sec)} {loop[1].split('/')[1]}")
+    # Need to get volumes in the secondary currency
+
+    # Buy cycle
+    # loop = [ETH/BTC, ETH/USD, BTC/USD]
+    # a_vol = 5ETH  --> 5* order_books[1]['asks'][0][0]
+    # b_vol = 1BTC  --> 1* order_books[2]['bids'][0][0]
+    # c_vol = 5ETH  --> 5* order_books[1]['asks'][0][0]
 
     # Compare to determine if Arbitrage opp exists
     # eg.
     # a = ETH/BTC, b = ETH/USD, c = BTC/USD
     #   ETH/BTC < (ETH/USD / BTC/USD)
     # = ETH/BTC < (ETH / BTC)
-    lhs = a
-    rhs = b / c
+    lhs = a_ask
+    rhs = b_bid / c_ask
     if lhs < rhs:  #  Cycle exists
         logger.info(f"Arbitrage Possibility: {loop[0]}: {lhs} < {loop[1]} / {loop[2]}: {rhs}")
         logger.info(f"{loop[1].split('/')[1]} --> {loop[0].split('/')[1]} --> {loop[0].split('/')[0]}")
         logger.info(f"Spread: {rhs/lhs}")
-        logger.info(f"Minimum volume: {min(a_vol, b_vol, c_vol)}")
     else:
         logger.info(f"No Arbitrage possibility on {loop[1].split('/')[1]} --> {loop[0].split('/')[1]} --> {loop[0].split('/')[0]}")
 

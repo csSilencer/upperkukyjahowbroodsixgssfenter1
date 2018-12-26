@@ -1,4 +1,8 @@
-import ccxt, logging, argparse, time, multiprocessing
+import ccxt
+import logging
+import argparse
+import time
+import multiprocessing
 from arb_logging_config import LOGGING
 
 logging.config.dictConfig(LOGGING)
@@ -6,6 +10,7 @@ logging.config.dictConfig(LOGGING)
 FEE = 0.0025
 
 ARBITRAGE_POSSIBILITIES = {}
+
 
 def get_command_line_options():
     """
@@ -29,14 +34,15 @@ def get_command_line_options():
                         default=20)
     return parser.parse_args()
 
+
 def arbitrage(max_macro_workers, cycle_num=3, cycle_time=10, fee_flag=True):
-    logger=logging.getLogger("main")
+    logger = logging.getLogger("main")
     logger.debug("Arbitrage Function Running")
-    fee_percentage = 0.001          #divided by 100
-    coins = ['BTC', 'LTC', 'ETH']   #Coins to Arbitrage
+    fee_percentage = 0.001  # divided by 100
+    coins = ['BTC', 'LTC', 'ETH']  # Coins to Arbitrage
     exchange_list = ['bittrex']
-    for exch in exchange_list:    #initialize Exchange
-        exchange_obj = getattr (ccxt, exch) ()
+    for exch in exchange_list:  # initialize Exchange
+        exchange_obj = getattr(ccxt, exch)()
         if exch not in exchange_list:
             continue
         logger.info(f"Loading markets for exchange: {exchange_obj}")
@@ -46,7 +52,7 @@ def arbitrage(max_macro_workers, cycle_num=3, cycle_time=10, fee_flag=True):
         if symbols is None:
             logger.info(f"Skipping Exchange {exch}")
             logger.info("\n-----------------\nNext Exchange\n-----------------")
-        elif len(symbols)<15:
+        elif len(symbols) < 15:
             logger.debug("\n-----------------\nNeed more Pairs (Next Exchange)\n-----------------")
         else:
             logger.debug(exchange_obj)
@@ -54,10 +60,10 @@ def arbitrage(max_macro_workers, cycle_num=3, cycle_time=10, fee_flag=True):
             closed_loops = get_closed_loops(symbols)
             initialise_arb_opportunities_dict(closed_loops)
             num_processes = max(max_macro_workers, 20)
-            worker_max_loop_size=int(len(closed_loops) / num_processes)
-            logger.info(f"Optimal worker loop size is {worker_max_loop_size}" \
-                          f" for {len(closed_loops)} " \
-                          f"closed_loops with {num_processes} processes")
+            worker_max_loop_size = int(len(closed_loops) / num_processes)
+            logger.info(f"Optimal worker loop size is {worker_max_loop_size}"
+                        f" for {len(closed_loops)} "
+                        f"closed_loops with {num_processes} processes")
             pool = multiprocessing.Pool(processes=num_processes+1)
             closed_loops_groups = [closed_loops[x:x+worker_max_loop_size] for x in range(0, len(closed_loops), worker_max_loop_size)]
             logger.info(f"Num closed loops {len(closed_loops_groups)}")
@@ -81,7 +87,7 @@ def subset_arb_monitor(closed_loops, exch, cycle_num=3, cycle_time=10, fee_flag=
     """
     logger = logging.getLogger("macro_arb_logger")
     logger.info(f"Process starting with closed loops subset {closed_loops}")
-    exchange_obj = getattr (ccxt, exch) ()
+    exchange_obj = getattr(ccxt, exch)()
 
     while True:
         for loop in closed_loops:
@@ -100,6 +106,7 @@ def initialise_arb_opportunities_dict(closed_loops):
     for loop in closed_loops:
         key = ", ".join(loop)
         ARBITRAGE_POSSIBILITIES[key] = False
+
 
 def calculate_buy_cycle(order_books, loop, fee_flag=True):
     logger = logging.getLogger("micro_arb_logger")
@@ -151,14 +158,15 @@ def calculate_buy_cycle(order_books, loop, fee_flag=True):
     # = ETH/BTC < (ETH / BTC)
     lhs = a_ask
     rhs = b_bid / c_ask
-    if lhs < rhs:  #  Cycle exists
+    if lhs < rhs:  # Cycle exists
         logger.info(f"Arbitrage Possibility: {loop[0]}: {lhs} < {loop[1]} / {loop[2]}: {rhs}")
         logger.info(f"{loop[1].split('/')[1]} --> {loop[0].split('/')[1]} --> {loop[0].split('/')[0]}")
         logger.info(f"Spread: {rhs/lhs}")
-        if ARBITRAGE_POSSIBILITIES[", ".join(loop)] == False:
+        if ARBITRAGE_POSSIBILITIES[", ".join(loop)] is False:
             ARBITRAGE_POSSIBILITIES[", ".join(loop)] = True
     else:
         logger.info(f"No Arbitrage possibility on {loop[1].split('/')[1]} --> {loop[0].split('/')[1]} --> {loop[0].split('/')[0]}")
+
 
 def calculate_sell_cycle(order_books, loop, fee_flag=True):
     logger = logging.getLogger("micro_arb_logger")
@@ -187,13 +195,14 @@ def calculate_sell_cycle(order_books, loop, fee_flag=True):
     # = ETH/BTC > (ETH / BTC)
     lhs = a
     rhs = b / c
-    if lhs > rhs:  #  Cycle exists
+    if lhs > rhs:  # Cycle exists
         logger.info(f"Arbitrage Possibility: {loop[0]}: {lhs} > {loop[1]} / {loop[2]}: {rhs}")
         logger.info(f"{loop[1].split('/')[1]} --> {loop[0].split('/')[0]} --> {loop[0].split('/')[1]}")
         logger.info(f"Spread: {lhs/rhs}")
         logger.info(f"Minimum volume: {min(a_vol, b_vol, c_vol)}")
     else:
         logger.info(f"No Arbitrage possibility on {loop[1].split('/')[1]} --> {loop[0].split('/')[0]} --> {loop[0].split('/')[1]}")
+
 
 def market_buy(starting_amount, exchange, symbol):
     """
@@ -251,6 +260,7 @@ def run_market_buy(exchange):
     logger.info(f"Starting funds: {starting_funds} {symbol.split('/')[1]}")
     logger.info(f"Total amount bought: {total_amount_bought} {symbol.split('/')[0]}")
 
+
 def get_closed_loops(symbols):
     # Find secondary currencies
 
@@ -297,6 +307,7 @@ def run():
         logger.setLevel(logging.DEBUG)
 
     arbitrage(int(cli_args.num_workers))
+
 
 if __name__ == '__main__':
     run()

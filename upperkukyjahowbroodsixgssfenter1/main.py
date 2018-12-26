@@ -6,10 +6,29 @@ import multiprocessing
 from arb_logging_config import LOGGING
 
 logging.config.dictConfig(LOGGING)
-# from triangular_arb_bot import TriangularArbBot
 FEE = 0.0025
 
+MIN_VOLUMES = {
+    "USD": 10,
+    "USDT": 10,
+    "ETH": 0.05,
+    "BTC": 0.002
+}
+
 ARBITRAGE_POSSIBILITIES = {}
+
+
+class Pair():
+    def __init__(self, pair):
+        self.primary = pair.split('/')[0]
+        self.secondary = pair.split('/')[1]
+        self.value = pair
+
+    def __str__(self):
+        return self.value
+
+    def __repr__(self):
+        return str(self)
 
 
 def get_command_line_options():
@@ -58,7 +77,7 @@ def arbitrage(max_macro_workers, cycle_num=3, cycle_time=10, fee_flag=True):
             logger.debug(exchange_obj)
             logger.info(f"------------Exchange: {exchange_obj.id}")
             closed_loops = get_closed_loops(symbols)
-            initialise_arb_opportunities_dict(closed_loops)
+            # initialise_arb_opportunities_dict(closed_loops)
             subset_arb_monitor(closed_loops, exch)
 
 
@@ -76,13 +95,13 @@ def subset_arb_monitor(closed_loops, exch, cycle_num=3, cycle_time=10, fee_flag=
     exchange_obj = getattr(ccxt, exch)()
 
     while True:
-        for loop in closed_loops:
+        for closed_loop in closed_loops:
             order_books = []
-            for sym in loop:
-                order_books.append(exchange_obj.fetch_order_book(symbol=sym))
+            for sym in closed_loop:
+                order_books.append(exchange_obj.fetch_order_book(symbol=str(sym)))
                 # time.sleep(0.9)
-            calculate_buy_cycle(order_books, loop, fee_flag=fee_flag)
-            calculate_sell_cycle(order_books, loop, fee_flag=fee_flag)
+            calculate_buy_cycle(order_books, closed_loop, fee_flag=fee_flag)
+            # calculate_sell_cycle(order_books, loop, fee_flag=fee_flag)
 
 
 def initialise_arb_opportunities_dict(closed_loops):
@@ -96,10 +115,12 @@ def initialise_arb_opportunities_dict(closed_loops):
 
 
 def calculate_buy_cycle(order_books, loop, fee_flag=True):
+    """
+    """
     logger = logging.getLogger("micro_arb_logger")
 
     logger.info("")
-    logger.info(f"Buy cycle on closed loop: {loop} fee: {fee_flag}")
+    logger.info(f"Buy cycle on closed loop: {loop}, fee: {fee_flag}")
 
     if fee_flag:
         fee_bid = 1-0.0025
@@ -108,50 +129,69 @@ def calculate_buy_cycle(order_books, loop, fee_flag=True):
         fee_bid = 1
         fee_ask = 1
 
-    # Get prices
-    a_ask = order_books[0]['asks'][0][0] * fee_ask
-    b_bid = order_books[1]['bids'][0][0] * fee_bid
-    b_ask = order_books[1]['asks'][0][0] * fee_ask
-    c_ask = order_books[2]['asks'][0][0] * fee_ask
+    # Get
 
-    # Get volume
-    a_vol = order_books[0]['asks'][0][1]
-    b_vol = order_books[1]['bids'][0][1]
-    c_vol = order_books[2]['asks'][0][1]
-    logger.info("In primary currency")
-    logger.info(f"a_vol: {a_vol}, b_vol: {b_vol}, c_vol: {c_vol}")
+    total_vol = 0
+    x_currency = loop[1].secondary
 
-    # ['A/B', 'A/X', 'B/X']
+    # ADA/BTC, ADA/USD, BTC/USD
+    a_x_price = order_books[1]['asks'][0][0] * fee_ask
 
-    # Buy cycle
-    # loop = [ETH/BTC, ETH/USD, BTC/USD]
-    # a_vol = 5ETH  --> 5* order_books[1]['asks'][0][0]
-    # b_vol = 1BTC  --> 1* order_books[2]['bids'][0][0]
-    # c_vol = 5ETH  --> 5* order_books[1]['asks'][0][0]
+    for order in order_books[0]['asks']:  # 100 returned in the call
+        price = order[0] * fee_ask
+        vol = order[1]
 
-    a_vol_in_sec = a_vol * b_ask
-    b_vol_in_sec = b_vol * b_bid
-    c_vol_in_sec = c_vol * c_ask
-    logger.info(f"In terms of {loop[1].split('/')[1]}")
-    logger.info(f"a_vol: {a_vol_in_sec}, b_vol: {b_vol_in_sec}, c_vol: {c_vol_in_sec}")
-    logger.info(f"Minimum volume: {min(a_vol_in_sec, b_vol_in_sec, c_vol_in_sec)} {loop[1].split('/')[1]}")
-    # Need to get volumes in the secondary currency
+        vol_x = vol * a_x_price
 
-    # Compare to determine if Arbitrage opp exists
-    # eg.
-    # a = ETH/BTC, b = ETH/USD, c = BTC/USD
-    #   ETH/BTC < (ETH/USD / BTC/USD)
-    # = ETH/BTC < (ETH / BTC)
-    lhs = a_ask
-    rhs = b_bid / c_ask
-    if lhs < rhs:  # Cycle exists
-        logger.info(f"Arbitrage Possibility: {loop[0]}: {lhs} < {loop[1]} / {loop[2]}: {rhs}")
-        logger.info(f"{loop[1].split('/')[1]} --> {loop[0].split('/')[1]} --> {loop[0].split('/')[0]}")
-        logger.info(f"Spread: {rhs/lhs}")
-        if ARBITRAGE_POSSIBILITIES[", ".join(loop)] is False:
-            ARBITRAGE_POSSIBILITIES[", ".join(loop)] = True
-    else:
-        logger.info(f"No Arbitrage possibility on {loop[1].split('/')[1]} --> {loop[0].split('/')[1]} --> {loop[0].split('/')[0]}")
+        total_vol += vol_x
+        logger.info(f"Total vol: {total_vol}")
+        if total_vol >= MIN_VOLUMES[x_currency]:
+            logger.info(f"Max vol of {MIN_VOLUMES[x_currency]} reached")
+            break
+
+
+    # b_bid = order_books[1]['bids'][0][0] * fee_bid
+    # b_ask = order_books[1]['asks'][0][0] * fee_ask
+    # c_ask = order_books[2]['asks'][0][0] * fee_ask
+    #
+    # # Get volume
+    # a_vol = order_books[0]['asks'][0][1]
+    # b_vol = order_books[1]['bids'][0][1]
+    # c_vol = order_books[2]['asks'][0][1]
+    # logger.info("In primary currency")
+    # logger.info(f"a_vol: {a_vol}, b_vol: {b_vol}, c_vol: {c_vol}")
+    #
+    # # ['A/B', 'A/X', 'B/X']
+    #
+    # # Buy cycle
+    # # loop = [ETH/BTC, ETH/USD, BTC/USD]
+    # # a_vol = 5ETH  --> 5* order_books[1]['asks'][0][0]
+    # # b_vol = 1BTC  --> 1* order_books[2]['bids'][0][0]
+    # # c_vol = 5ETH  --> 5* order_books[1]['asks'][0][0]
+    #
+    # a_vol_in_sec = a_vol * b_ask
+    # b_vol_in_sec = b_vol * b_bid
+    # c_vol_in_sec = c_vol * c_ask
+    # logger.info(f"In terms of {loop[1].split('/')[1]}")
+    # logger.info(f"a_vol: {a_vol_in_sec}, b_vol: {b_vol_in_sec}, c_vol: {c_vol_in_sec}")
+    # logger.info(f"Minimum volume: {min(a_vol_in_sec, b_vol_in_sec, c_vol_in_sec)} {loop[1].split('/')[1]}")
+    # # Need to get volumes in the secondary currency
+    #
+    # # Compare to determine if Arbitrage opp exists
+    # # eg.
+    # # a = ETH/BTC, b = ETH/USD, c = BTC/USD
+    # #   ETH/BTC < (ETH/USD / BTC/USD)
+    # # = ETH/BTC < (ETH / BTC)
+    # lhs = a_ask
+    # rhs = b_bid / c_ask
+    # if lhs < rhs:  # Cycle exists
+    #     logger.info(f"Arbitrage Possibility: {loop[0]}: {lhs} < {loop[1]} / {loop[2]}: {rhs}")
+    #     logger.info(f"{loop[1].split('/')[1]} --> {loop[0].split('/')[1]} --> {loop[0].split('/')[0]}")
+    #     logger.info(f"Spread: {rhs/lhs}")
+    #     if ARBITRAGE_POSSIBILITIES[", ".join(loop)] is False:
+    #         ARBITRAGE_POSSIBILITIES[", ".join(loop)] = True
+    # else:
+    #     logger.info(f"No Arbitrage possibility on {loop[1].split('/')[1]} --> {loop[0].split('/')[1]} --> {loop[0].split('/')[0]}")
 
 
 def calculate_sell_cycle(order_books, loop, fee_flag=True):
@@ -272,15 +312,15 @@ def get_closed_loops(symbols):
     market_loops = []
     for sym in symbols:
         for sec in secondary_currencies:
-            pair_a = sym.split('/')[0] + '/' + sec
-            pair_b = sym.split('/')[1] + '/' + sec
-            if pair_a in symbols and pair_a != sym and pair_b in symbols and pair_b != sym:
+            pair_b = sym.split('/')[0] + '/' + sec
+            pair_c = sym.split('/')[1] + '/' + sec
+            if pair_b in symbols and pair_b != sym and pair_c in symbols and pair_c != sym:
                 logger.debug("Triangular market found!")
                 logger.debug(sym)
-                logger.debug(pair_a)
                 logger.debug(pair_b)
+                logger.debug(pair_c)
                 logger.debug("============")
-                market_loops.append([sym, pair_a, pair_b])
+                market_loops.append([Pair(sym), Pair(pair_b), Pair(pair_c)])
 
     for loop in market_loops:
         logger.debug(loop)

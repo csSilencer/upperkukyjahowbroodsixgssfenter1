@@ -53,22 +53,7 @@ def arbitrage(max_macro_workers, cycle_num=3, cycle_time=10, fee_flag=True):
             logger.info(f"------------Exchange: {exchange_obj.id}")
             closed_loops = get_closed_loops(symbols)
             initialise_arb_opportunities_dict(closed_loops)
-            num_processes = max(max_macro_workers, 20)
-            worker_max_loop_size=int(len(closed_loops) / num_processes)
-            logger.info(f"Optimal worker loop size is {worker_max_loop_size}" \
-                          f" for {len(closed_loops)} " \
-                          f"closed_loops with {num_processes} processes")
-            pool = multiprocessing.Pool(processes=num_processes+1)
-            closed_loops_groups = [closed_loops[x:x+worker_max_loop_size] for x in range(0, len(closed_loops), worker_max_loop_size)]
-            logger.info(f"Num closed loops {len(closed_loops_groups)}")
-            logger.info(f"closed loop groups {closed_loops_groups}")
-            for closed_loops_subset in closed_loops_groups:
-                logger.info(f"Kicking off closed loops subset {closed_loops_subset}")
-                pool.apply_async(subset_arb_monitor, args=(closed_loops_subset.copy(), exch))
-
-            pool.close()
-            pool.join()
-
+            subset_arb_monitor(closed_loops, exch)
 
 def subset_arb_monitor(closed_loops, exch, cycle_num=3, cycle_time=10, fee_flag=True):
     """
@@ -88,6 +73,7 @@ def subset_arb_monitor(closed_loops, exch, cycle_num=3, cycle_time=10, fee_flag=
             order_books = []
             for sym in loop:
                 order_books.append(exchange_obj.fetch_order_book(symbol=sym))
+                # time.sleep(0.9)
             calculate_buy_cycle(order_books, loop, fee_flag=fee_flag)
             # calculate_sell_cycle(order_books, loop, fee_flag=fee_flag)
 

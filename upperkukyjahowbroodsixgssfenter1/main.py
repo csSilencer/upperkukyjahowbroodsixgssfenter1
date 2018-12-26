@@ -61,6 +61,7 @@ def arbitrage(max_macro_workers, cycle_num=3, cycle_time=10, fee_flag=True):
             initialise_arb_opportunities_dict(closed_loops)
             subset_arb_monitor(closed_loops, exch)
 
+
 def subset_arb_monitor(closed_loops, exch, cycle_num=3, cycle_time=10, fee_flag=True):
     """
     Monitor a smaller subset of closed loops for lower refresh rate
@@ -81,7 +82,7 @@ def subset_arb_monitor(closed_loops, exch, cycle_num=3, cycle_time=10, fee_flag=
                 order_books.append(exchange_obj.fetch_order_book(symbol=sym))
                 # time.sleep(0.9)
             calculate_buy_cycle(order_books, loop, fee_flag=fee_flag)
-            # calculate_sell_cycle(order_books, loop, fee_flag=fee_flag)
+            calculate_sell_cycle(order_books, loop, fee_flag=fee_flag)
 
 
 def initialise_arb_opportunities_dict(closed_loops):
@@ -98,7 +99,6 @@ def calculate_buy_cycle(order_books, loop, fee_flag=True):
     logger = logging.getLogger("micro_arb_logger")
 
     logger.info("")
-
     logger.info(f"Buy cycle on closed loop: {loop} fee: {fee_flag}")
 
     if fee_flag:
@@ -156,6 +156,8 @@ def calculate_buy_cycle(order_books, loop, fee_flag=True):
 
 def calculate_sell_cycle(order_books, loop, fee_flag=True):
     logger = logging.getLogger("micro_arb_logger")
+
+    logger.info("")
     logger.info(f"Sell cycle on closed loop: {loop} fee: {fee_flag}")
 
     if fee_flag:
@@ -165,22 +167,27 @@ def calculate_sell_cycle(order_books, loop, fee_flag=True):
         fee_bid = 1
         fee_ask = 1
 
-    a = order_books[0]['bids'][0][0] * fee_bid
-    b = order_books[1]['asks'][0][0] * fee_ask
-    c = order_books[2]['bids'][0][0] * fee_bid
+    a_bid = order_books[0]['bids'][0][0] * fee_bid
+    b_ask = order_books[1]['asks'][0][0] * fee_ask
+    b_bid = order_books[1]['asks'][0][0] * fee_bid
+    c_bid = order_books[2]['bids'][0][0] * fee_bid
 
     # Get volume
     a_vol = order_books[0]['bids'][0][1]
     b_vol = order_books[1]['asks'][0][1]
     c_vol = order_books[2]['bids'][0][1]
+    logger.info("In primary currency")
+    logger.info(f"a_vol: {a_vol}, b_vol: {b_vol}, c_vol: {c_vol}")
 
-    # Compare to determine if Arbitrage opp exists
-    # eg.
-    # a = ETH/BTC, b = ETH/USD, c = BTC/USD
-    #   ETH/BTC > (ETH/USD / BTC/USD)
-    # = ETH/BTC > (ETH / BTC)
-    lhs = a
-    rhs = b / c
+    a_vol_in_sec = a_vol * b_bid
+    b_vol_in_sec = b_vol * b_ask
+    c_vol_in_sec = c_vol * c_bid
+    logger.info(f"In terms of {loop[1].split('/')[1]}")
+    logger.info(f"a_vol: {a_vol_in_sec}, b_vol: {b_vol_in_sec}, c_vol: {c_vol_in_sec}")
+    logger.info(f"Minimum volume: {min(a_vol_in_sec, b_vol_in_sec, c_vol_in_sec)} {loop[1].split('/')[1]}")
+
+    lhs = a_bid
+    rhs = b_ask / c_bid
     if lhs > rhs:  # Cycle exists
         logger.info(f"Arbitrage Possibility: {loop[0]}: {lhs} > {loop[1]} / {loop[2]}: {rhs}")
         logger.info(f"{loop[1].split('/')[1]} --> {loop[0].split('/')[0]} --> {loop[0].split('/')[1]}")

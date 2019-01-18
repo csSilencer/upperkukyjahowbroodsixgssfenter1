@@ -7,6 +7,8 @@ from arb_logging_config import LOGGING
 
 logging.config.dictConfig(LOGGING)
 FEE = 0.0025
+FEE_BID = 1-FEE
+FEE_ASK = 1+FEE
 
 MIN_VOLUMES = {
     "USD": 10,
@@ -122,46 +124,74 @@ def calculate_buy_cycle(order_books, loop, fee_flag=True):
     logger.info("")
     logger.info(f"Buy cycle on closed loop: {loop}, fee: {fee_flag}")
 
-    if fee_flag:
-        fee_bid = 1-0.0025
-        fee_ask = 1+0.0025
-    else:
-        fee_bid = 1
-        fee_ask = 1
-
     x_currency = loop[1].secondary
 
+    # Used to calculate volumes in terms of base currency
+    a_x_ask_price = order_books[1]['asks'][0][0] * FEE_ASK
+    a_x_bid_price = order_books[1]['bids'][0][0] * FEE_BID
+    b_x_ask_price = order_books[2]['asks'][0][0] * FEE_ASK
+
     a_vol = 0
-    a_x_ask_price = order_books[1]['asks'][0][0] * fee_ask
+    a_vol_in_x = 0
+    a_order_cost = 0
+    logger.info("=== A")
     for order in order_books[0]['asks']:  # 100 returned in the call
-        price = order[0] * fee_ask
+        price = order[0] * FEE_ASK
         vol = order[1]
-        vol_x = vol * a_x_ask_price
-        a_vol += vol_x
-        if a_vol >= MIN_VOLUMES[x_currency]:
-            logger.info(f"Vol of {loop[0]}: {a_vol} {loop[1].secondary}")
+        order_cost = price * vol  # Total cost of order
+
+        # To calculate average price of multiple orders
+        a_vol += vol  # Volume
+        a_order_cost += order_cost  # Keep running total order cost
+        a_vol_in_x += vol * a_x_ask_price  # Keep running total of volume in terms of X currency
+
+        # If total volume (in X) reached, calculate average cost and return
+        if a_vol_in_x >= MIN_VOLUMES[x_currency]:
+            logger.info(f"Vol of {loop[0]}: {a_vol_in_x} {x_currency}")
+            a_avg_price = a_order_cost / a_vol
+            logger.info(f"Average Price: {a_avg_price}")
             break
 
     b_vol = 0
-    a_x_bid_price = order_books[1]['bids'][0][0] * fee_bid
-    for order in order_books[1]['bids']:  # 100 returned in the call
-        price = order[0] * fee_bid
+    b_vol_in_x = 0
+    b_order_cost = 0
+    logger.info("=== B")
+    for order in order_books[1]['bids']:
+        price = order[0] * FEE_BID
         vol = order[1]
-        vol_x = vol * a_x_bid_price
-        b_vol += vol_x
-        if b_vol >= MIN_VOLUMES[x_currency]:
-            logger.info(f"Vol of {loop[1]}: {b_vol} {loop[1].secondary}")
+        order_cost = price * vol  # Total cost of order
+
+        # To calculate average price of multiple orders
+        b_vol += vol  # Volume
+        b_order_cost += order_cost  # Keep running total order cost
+        b_vol_in_x += vol * a_x_bid_price  # Keep running total of volume in terms of X currency
+
+        # If total volume (in X) reached, calculate average cost and return
+        if b_vol_in_x >= MIN_VOLUMES[x_currency]:
+            logger.info(f"Vol of {loop[1]}: {b_vol_in_x} {x_currency}")
+            b_avg_price = b_order_cost / b_vol
+            logger.info(f"Average Price: {b_avg_price}")
             break
 
     c_vol = 0
-    b_x_ask_price = order_books[2]['asks'][0][0] * fee_ask
+    c_vol_in_x = 0
+    c_order_cost = 0
+    logger.info("=== C")
     for order in order_books[2]['asks']:  # 100 returned in the call
-        price = order[0] * fee_ask
+        price = order[0] * FEE_ASK
         vol = order[1]
-        vol_x = vol * b_x_ask_price
-        c_vol += vol_x
-        if c_vol >= MIN_VOLUMES[x_currency]:
-            logger.info(f"Vol of {loop[2]}: {c_vol} {loop[1].secondary}")
+        order_cost = price * vol  # Total cost of order
+
+        # To calculate average price of multiple orders
+        c_vol += vol  # Volume
+        c_order_cost += order_cost  # Keep running total order cost
+        c_vol_in_x += vol * b_x_ask_price  # Keep running total of volume in terms of X currency
+
+        # If total volume (in X) reached, calculate average cost and return
+        if c_vol_in_x >= MIN_VOLUMES[x_currency]:
+            logger.info(f"Vol of {loop[2]}: {c_vol_in_x} {x_currency}")
+            c_avg_price = c_order_cost / c_vol
+            logger.info(f"Average Price: {c_avg_price}")
             break
 
     # ['A/B', 'A/X', 'B/X']
@@ -171,7 +201,7 @@ def calculate_buy_cycle(order_books, loop, fee_flag=True):
     # a_vol = 5ETH  --> 5* order_books[1]['asks'][0][0]
     # b_vol = 1BTC  --> 1* order_books[2]['bids'][0][0]
     # c_vol = 5ETH  --> 5* order_books[1]['asks'][0][0]
-
+    logger.info("=== Calculations")
     logger.info(f"Minimum volume: {min(a_vol, b_vol, c_vol)} {loop[1].secondary}")
 
     # Compare to determine if Arbitrage opp exists
@@ -181,16 +211,16 @@ def calculate_buy_cycle(order_books, loop, fee_flag=True):
     # = ETH/BTC < (ETH / BTC)
 
     # Need to calculate average price
-    # lhs = a_ask
-    # rhs = b_bid / c_ask
-    # if lhs < rhs:  # Cycle exists
-    #     logger.info(f"Arbitrage Possibility: {loop[0]}: {lhs} < {loop[1]} / {loop[2]}: {rhs}")
-    #     logger.info(f"{loop[1].split('/')[1]} --> {loop[0].split('/')[1]} --> {loop[0].split('/')[0]}")
-    #     logger.info(f"Spread: {rhs/lhs}")
-    #     if ARBITRAGE_POSSIBILITIES[", ".join(loop)] is False:
-    #         ARBITRAGE_POSSIBILITIES[", ".join(loop)] = True
-    # else:
-    #     logger.info(f"No Arbitrage possibility on {loop[1].split('/')[1]} --> {loop[0].split('/')[1]} --> {loop[0].split('/')[0]}")
+    lhs = a_avg_price
+    rhs = b_avg_price / c_avg_price
+    if lhs < rhs:  # Cycle exists
+        logger.info(f"Arbitrage Possibility: {loop[0]}: {lhs} < {loop[1]} / {loop[2]}: {rhs}")
+        logger.info(f"{loop[1].secondary} --> {loop[0].secondary} --> {loop[0].primary}")
+        logger.info(f"Spread: {rhs/lhs}")
+        if ARBITRAGE_POSSIBILITIES[", ".join(loop)] is False:
+            ARBITRAGE_POSSIBILITIES[", ".join(loop)] = True
+    else:
+        logger.info(f"No Arbitrage possibility on {loop[1].secondary} --> {loop[0].secondary} --> {loop[0].primary}")
 
 
 def calculate_sell_cycle(order_books, loop, fee_flag=True):
@@ -199,17 +229,10 @@ def calculate_sell_cycle(order_books, loop, fee_flag=True):
     logger.info("")
     logger.info(f"Sell cycle on closed loop: {loop} fee: {fee_flag}")
 
-    if fee_flag:
-        fee_bid = 1-0.0025
-        fee_ask = 1+0.0025
-    else:
-        fee_bid = 1
-        fee_ask = 1
-
-    a_bid = order_books[0]['bids'][0][0] * fee_bid
-    b_ask = order_books[1]['asks'][0][0] * fee_ask
-    b_bid = order_books[1]['asks'][0][0] * fee_bid
-    c_bid = order_books[2]['bids'][0][0] * fee_bid
+    a_bid = order_books[0]['bids'][0][0] * FEE_BID
+    b_ask = order_books[1]['asks'][0][0] * FEE_ASK
+    b_bid = order_books[1]['asks'][0][0] * FEE_BID
+    c_bid = order_books[2]['bids'][0][0] * FEE_BID
 
     # Get volume
     a_vol = order_books[0]['bids'][0][1]

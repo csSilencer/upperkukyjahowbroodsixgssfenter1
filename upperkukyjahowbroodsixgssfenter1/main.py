@@ -129,59 +129,58 @@ def calculate_buy_cycle(order_books, loop, fee_flag=True):
         fee_bid = 1
         fee_ask = 1
 
-    # Get
-
-    total_vol = 0
     x_currency = loop[1].secondary
 
-    # ADA/BTC, ADA/USD, BTC/USD
-    a_x_price = order_books[1]['asks'][0][0] * fee_ask
-
+    a_vol = 0
+    a_x_ask_price = order_books[1]['asks'][0][0] * fee_ask
     for order in order_books[0]['asks']:  # 100 returned in the call
         price = order[0] * fee_ask
         vol = order[1]
-
-        vol_x = vol * a_x_price
-
-        total_vol += vol_x
-        logger.info(f"Total vol: {total_vol}")
-        if total_vol >= MIN_VOLUMES[x_currency]:
-            logger.info(f"Max vol of {MIN_VOLUMES[x_currency]} reached")
+        vol_x = vol * a_x_ask_price
+        a_vol += vol_x
+        if a_vol >= MIN_VOLUMES[x_currency]:
+            logger.info(f"Vol of {loop[0]}: {a_vol} {loop[1].secondary}")
             break
 
+    b_vol = 0
+    a_x_bid_price = order_books[1]['bids'][0][0] * fee_bid
+    for order in order_books[1]['bids']:  # 100 returned in the call
+        price = order[0] * fee_bid
+        vol = order[1]
+        vol_x = vol * a_x_bid_price
+        b_vol += vol_x
+        if b_vol >= MIN_VOLUMES[x_currency]:
+            logger.info(f"Vol of {loop[1]}: {b_vol} {loop[1].secondary}")
+            break
 
-    # b_bid = order_books[1]['bids'][0][0] * fee_bid
-    # b_ask = order_books[1]['asks'][0][0] * fee_ask
-    # c_ask = order_books[2]['asks'][0][0] * fee_ask
-    #
-    # # Get volume
-    # a_vol = order_books[0]['asks'][0][1]
-    # b_vol = order_books[1]['bids'][0][1]
-    # c_vol = order_books[2]['asks'][0][1]
-    # logger.info("In primary currency")
-    # logger.info(f"a_vol: {a_vol}, b_vol: {b_vol}, c_vol: {c_vol}")
-    #
-    # # ['A/B', 'A/X', 'B/X']
-    #
-    # # Buy cycle
-    # # loop = [ETH/BTC, ETH/USD, BTC/USD]
-    # # a_vol = 5ETH  --> 5* order_books[1]['asks'][0][0]
-    # # b_vol = 1BTC  --> 1* order_books[2]['bids'][0][0]
-    # # c_vol = 5ETH  --> 5* order_books[1]['asks'][0][0]
-    #
-    # a_vol_in_sec = a_vol * b_ask
-    # b_vol_in_sec = b_vol * b_bid
-    # c_vol_in_sec = c_vol * c_ask
-    # logger.info(f"In terms of {loop[1].split('/')[1]}")
-    # logger.info(f"a_vol: {a_vol_in_sec}, b_vol: {b_vol_in_sec}, c_vol: {c_vol_in_sec}")
-    # logger.info(f"Minimum volume: {min(a_vol_in_sec, b_vol_in_sec, c_vol_in_sec)} {loop[1].split('/')[1]}")
-    # # Need to get volumes in the secondary currency
-    #
-    # # Compare to determine if Arbitrage opp exists
-    # # eg.
-    # # a = ETH/BTC, b = ETH/USD, c = BTC/USD
-    # #   ETH/BTC < (ETH/USD / BTC/USD)
-    # # = ETH/BTC < (ETH / BTC)
+    c_vol = 0
+    b_x_ask_price = order_books[2]['asks'][0][0] * fee_ask
+    for order in order_books[2]['asks']:  # 100 returned in the call
+        price = order[0] * fee_ask
+        vol = order[1]
+        vol_x = vol * b_x_ask_price
+        c_vol += vol_x
+        if c_vol >= MIN_VOLUMES[x_currency]:
+            logger.info(f"Vol of {loop[2]}: {c_vol} {loop[1].secondary}")
+            break
+
+    # ['A/B', 'A/X', 'B/X']
+
+    # Buy cycle
+    # loop = [ETH/BTC, ETH/USD, BTC/USD]
+    # a_vol = 5ETH  --> 5* order_books[1]['asks'][0][0]
+    # b_vol = 1BTC  --> 1* order_books[2]['bids'][0][0]
+    # c_vol = 5ETH  --> 5* order_books[1]['asks'][0][0]
+
+    logger.info(f"Minimum volume: {min(a_vol, b_vol, c_vol)} {loop[1].secondary}")
+
+    # Compare to determine if Arbitrage opp exists
+    # eg.
+    # a = ETH/BTC, b = ETH/USD, c = BTC/USD
+    #   ETH/BTC < (ETH/USD / BTC/USD)
+    # = ETH/BTC < (ETH / BTC)
+
+    # Need to calculate average price
     # lhs = a_ask
     # rhs = b_bid / c_ask
     # if lhs < rhs:  # Cycle exists

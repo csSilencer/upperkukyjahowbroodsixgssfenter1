@@ -45,10 +45,6 @@ def get_command_line_options():
                         help='Set the logging level to debug',
                         required=False,
                         default=False)
-    parser.add_argument('-f', '--fee_flag',
-                        help='Turn the fee calculation on or off',
-                        required=False,
-                        default=True)
     parser.add_argument('-w', '--num_workers',
                         help='Number of python workers to monitor opps',
                         required=False,
@@ -56,10 +52,9 @@ def get_command_line_options():
     return parser.parse_args()
 
 
-def arbitrage(max_macro_workers, cycle_num=3, cycle_time=10, fee_flag=True):
+def arbitrage(max_macro_workers, cycle_num=3, cycle_time=10):
     logger = logging.getLogger("main")
     logger.debug("Arbitrage Function Running")
-    fee_percentage = 0.001  # divided by 100
     coins = ['BTC', 'LTC', 'ETH']  # Coins to Arbitrage
     exchange_list = ['bittrex']
     for exch in exchange_list:  # initialize Exchange
@@ -83,13 +78,12 @@ def arbitrage(max_macro_workers, cycle_num=3, cycle_time=10, fee_flag=True):
             subset_arb_monitor(closed_loops, exch)
 
 
-def subset_arb_monitor(closed_loops, exch, cycle_num=3, cycle_time=10, fee_flag=True):
+def subset_arb_monitor(closed_loops, exch, cycle_num=3, cycle_time=10):
     """
     Monitor a smaller subset of closed loops for lower refresh rate
     :param closed_loops:
     :param cycle_num:
     :param cycle_time:
-    :param fee_flag:
     :return:
     """
     logger = logging.getLogger("macro_arb_logger")
@@ -102,8 +96,8 @@ def subset_arb_monitor(closed_loops, exch, cycle_num=3, cycle_time=10, fee_flag=
             for sym in closed_loop:
                 order_books.append(exchange_obj.fetch_order_book(symbol=str(sym)))
                 # time.sleep(0.9)
-            calculate_buy_cycle(order_books, closed_loop, fee_flag=fee_flag)
-            # calculate_sell_cycle(order_books, loop, fee_flag=fee_flag)
+            calculate_buy_cycle(order_books, closed_loop)
+            # calculate_sell_cycle(order_books, loop)
 
 
 def initialise_arb_opportunities_dict(closed_loops):
@@ -116,13 +110,13 @@ def initialise_arb_opportunities_dict(closed_loops):
         ARBITRAGE_POSSIBILITIES[key] = False
 
 
-def calculate_buy_cycle(order_books, loop, fee_flag=True):
+def calculate_buy_cycle(order_books, loop):
     """
     """
     logger = logging.getLogger("micro_arb_logger")
 
-    logger.info("")
-    logger.info(f"Buy cycle on closed loop: {loop}, fee: {fee_flag}")
+    logger.debug("")
+    logger.debug(f"Buy cycle on closed loop: {loop}")
 
     x_currency = loop[1].secondary
 
@@ -223,11 +217,11 @@ def calculate_buy_cycle(order_books, loop, fee_flag=True):
         logger.info(f"No Arbitrage possibility on {loop[1].secondary} --> {loop[0].secondary} --> {loop[0].primary}")
 
 
-def calculate_sell_cycle(order_books, loop, fee_flag=True):
+def calculate_sell_cycle(order_books, loop):
     logger = logging.getLogger("micro_arb_logger")
 
     logger.info("")
-    logger.info(f"Sell cycle on closed loop: {loop} fee: {fee_flag}")
+    logger.info(f"Sell cycle on closed loop: {loop}")
 
     a_bid = order_books[0]['bids'][0][0] * FEE_BID
     b_ask = order_books[1]['asks'][0][0] * FEE_ASK

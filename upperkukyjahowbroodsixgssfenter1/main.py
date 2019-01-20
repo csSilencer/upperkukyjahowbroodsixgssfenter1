@@ -134,7 +134,7 @@ def calculate_buy_cycle(order_books, loop, fee_flag=True):
     a_vol = 0
     a_vol_in_x = 0
     a_order_cost = 0
-    logger.info("=== A")
+    logger.debug("=== A")
     for order in order_books[0]['asks']:  # 100 returned in the call
         price = order[0] * FEE_ASK
         vol = order[1]
@@ -147,15 +147,15 @@ def calculate_buy_cycle(order_books, loop, fee_flag=True):
 
         # If total volume (in X) reached, calculate average cost and return
         if a_vol_in_x >= MIN_VOLUMES[x_currency]:
-            logger.info(f"Vol of {loop[0]}: {a_vol_in_x} {x_currency}")
+            logger.debug(f"Vol of {loop[0]}: {a_vol_in_x} {x_currency}")
             a_avg_price = a_order_cost / a_vol
-            logger.info(f"Average Price: {a_avg_price}")
+            logger.debug(f"Average Price: {a_avg_price}")
             break
 
     b_vol = 0
     b_vol_in_x = 0
     b_order_cost = 0
-    logger.info("=== B")
+    logger.debug("=== B")
     for order in order_books[1]['bids']:
         price = order[0] * FEE_BID
         vol = order[1]
@@ -168,15 +168,15 @@ def calculate_buy_cycle(order_books, loop, fee_flag=True):
 
         # If total volume (in X) reached, calculate average cost and return
         if b_vol_in_x >= MIN_VOLUMES[x_currency]:
-            logger.info(f"Vol of {loop[1]}: {b_vol_in_x} {x_currency}")
+            logger.debug(f"Vol of {loop[1]}: {b_vol_in_x} {x_currency}")
             b_avg_price = b_order_cost / b_vol
-            logger.info(f"Average Price: {b_avg_price}")
+            logger.debug(f"Average Price: {b_avg_price}")
             break
 
     c_vol = 0
     c_vol_in_x = 0
     c_order_cost = 0
-    logger.info("=== C")
+    logger.debug("=== C")
     for order in order_books[2]['asks']:  # 100 returned in the call
         price = order[0] * FEE_ASK
         vol = order[1]
@@ -189,9 +189,9 @@ def calculate_buy_cycle(order_books, loop, fee_flag=True):
 
         # If total volume (in X) reached, calculate average cost and return
         if c_vol_in_x >= MIN_VOLUMES[x_currency]:
-            logger.info(f"Vol of {loop[2]}: {c_vol_in_x} {x_currency}")
+            logger.debug(f"Vol of {loop[2]}: {c_vol_in_x} {x_currency}")
             c_avg_price = c_order_cost / c_vol
-            logger.info(f"Average Price: {c_avg_price}")
+            logger.debug(f"Average Price: {c_avg_price}")
             break
 
     # ['A/B', 'A/X', 'B/X']
@@ -201,8 +201,7 @@ def calculate_buy_cycle(order_books, loop, fee_flag=True):
     # a_vol = 5ETH  --> 5* order_books[1]['asks'][0][0]
     # b_vol = 1BTC  --> 1* order_books[2]['bids'][0][0]
     # c_vol = 5ETH  --> 5* order_books[1]['asks'][0][0]
-    logger.info("=== Calculations")
-    logger.info(f"Minimum volume: {min(a_vol, b_vol, c_vol)} {loop[1].secondary}")
+    logger.debug("=== Calculations")
 
     # Compare to determine if Arbitrage opp exists
     # eg.
@@ -217,6 +216,7 @@ def calculate_buy_cycle(order_books, loop, fee_flag=True):
         logger.info(f"Arbitrage Possibility: {loop[0]}: {lhs} < {loop[1]} / {loop[2]}: {rhs}")
         logger.info(f"{loop[1].secondary} --> {loop[0].secondary} --> {loop[0].primary}")
         logger.info(f"Spread: {rhs/lhs}")
+        logger.info(f"Minimum volume: {min(a_vol, b_vol, c_vol)} {loop[1].secondary}")
         if ARBITRAGE_POSSIBILITIES[", ".join(loop)] is False:
             ARBITRAGE_POSSIBILITIES[", ".join(loop)] = True
     else:

@@ -188,22 +188,8 @@ def calculate_buy_cycle(order_books, loop):
             logger.debug(f"Average Price: {c_avg_price}")
             break
 
-    # ['A/B', 'A/X', 'B/X']
-
-    # Buy cycle
-    # loop = [ETH/BTC, ETH/USD, BTC/USD]
-    # a_vol = 5ETH  --> 5* order_books[1]['asks'][0][0]
-    # b_vol = 1BTC  --> 1* order_books[2]['bids'][0][0]
-    # c_vol = 5ETH  --> 5* order_books[1]['asks'][0][0]
     logger.debug("=== Calculations")
 
-    # Compare to determine if Arbitrage opp exists
-    # eg.
-    # a = ETH/BTC, b = ETH/USD, c = BTC/USD
-    #   ETH/BTC < (ETH/USD / BTC/USD)
-    # = ETH/BTC < (ETH / BTC)
-
-    # Need to calculate average price
     lhs = a_avg_price
     rhs = b_avg_price / c_avg_price
     if lhs < rhs:  # Cycle exists

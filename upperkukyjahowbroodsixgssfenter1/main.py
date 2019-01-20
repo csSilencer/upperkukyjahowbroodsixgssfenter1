@@ -120,78 +120,53 @@ def calculate_buy_cycle(order_books, loop):
 
     x_currency = loop[1].secondary
 
+    order_book_list = [
+        order_books[0]['asks'],
+        order_books[1]['bids'],
+        order_books[2]['asks']
+    ]
+
+    fee_cycle_list = [
+        FEE_ASK,
+        FEE_BID,
+        FEE_ASK
+    ]
+
     # Used to calculate volumes in terms of base currency
-    a_x_ask_price = order_books[1]['asks'][0][0] * FEE_ASK
-    a_x_bid_price = order_books[1]['bids'][0][0] * FEE_BID
-    b_x_ask_price = order_books[2]['asks'][0][0] * FEE_ASK
+    vol_to_x_price_list = [
+        order_books[1]['asks'][0][0] * FEE_ASK,
+        order_books[1]['bids'][0][0] * FEE_BID,
+        order_books[2]['asks'][0][0] * FEE_ASK
+    ]
 
-    a_vol = 0
-    a_vol_in_x = 0
-    a_order_cost = 0
-    logger.debug("=== A")
-    for order in order_books[0]['asks']:  # 100 returned in the call
-        price = order[0] * FEE_ASK
-        vol = order[1]
-        order_cost = price * vol  # Total cost of order
+    avg_prices = []
+    for i in range(3):
+        total_vol = 0
+        total_vol_in_x = 0
+        total_order_cost = 0
 
-        # To calculate average price of multiple orders
-        a_vol += vol  # Volume
-        a_order_cost += order_cost  # Keep running total order cost
-        a_vol_in_x += vol * a_x_ask_price  # Keep running total of volume in terms of X currency
+        for order in order_book_list[i]:  # 100 returned in the call
+            price = order[0] * fee_cycle_list[i]
+            vol = order[1]
+            order_cost = price * vol  # Total cost of order
 
-        # If total volume (in X) reached, calculate average cost and return
-        if a_vol_in_x >= MIN_VOLUMES[x_currency]:
-            logger.debug(f"Vol of {loop[0]}: {a_vol_in_x} {x_currency}")
-            a_avg_price = a_order_cost / a_vol
-            logger.debug(f"Average Price: {a_avg_price}")
-            break
+            # To calculate average price of multiple orders
+            total_vol += vol  # Volume
+            total_order_cost += order_cost  # Keep running total order cost
+            total_vol_in_x += vol * vol_to_x_price_list[i]  # Keep running total of volume in terms of X currency
 
-    b_vol = 0
-    b_vol_in_x = 0
-    b_order_cost = 0
-    logger.debug("=== B")
-    for order in order_books[1]['bids']:
-        price = order[0] * FEE_BID
-        vol = order[1]
-        order_cost = price * vol  # Total cost of order
-
-        # To calculate average price of multiple orders
-        b_vol += vol  # Volume
-        b_order_cost += order_cost  # Keep running total order cost
-        b_vol_in_x += vol * a_x_bid_price  # Keep running total of volume in terms of X currency
-
-        # If total volume (in X) reached, calculate average cost and return
-        if b_vol_in_x >= MIN_VOLUMES[x_currency]:
-            logger.debug(f"Vol of {loop[1]}: {b_vol_in_x} {x_currency}")
-            b_avg_price = b_order_cost / b_vol
-            logger.debug(f"Average Price: {b_avg_price}")
-            break
-
-    c_vol = 0
-    c_vol_in_x = 0
-    c_order_cost = 0
-    logger.debug("=== C")
-    for order in order_books[2]['asks']:  # 100 returned in the call
-        price = order[0] * FEE_ASK
-        vol = order[1]
-        order_cost = price * vol  # Total cost of order
-
-        # To calculate average price of multiple orders
-        c_vol += vol  # Volume
-        c_order_cost += order_cost  # Keep running total order cost
-        c_vol_in_x += vol * b_x_ask_price  # Keep running total of volume in terms of X currency
-
-        # If total volume (in X) reached, calculate average cost and return
-        if c_vol_in_x >= MIN_VOLUMES[x_currency]:
-            logger.debug(f"Vol of {loop[2]}: {c_vol_in_x} {x_currency}")
-            c_avg_price = c_order_cost / c_vol
-            logger.debug(f"Average Price: {c_avg_price}")
-            break
+            # If total volume (in X) reached, calculate average cost and return
+            if total_vol_in_x >= MIN_VOLUMES[x_currency]:
+                logger.info(f"Vol of {loop[i]}: {total_vol_in_x} {x_currency}")
+                avg_price = total_order_cost / total_vol
+                logger.info(f"Average Price: {avg_price}")
+                avg_prices.append(avg_price)
+                break
 
     logger.debug("=== Calculations")
 
-    lhs = a_avg_price
-    rhs = b_avg_price / c_avg_price
+    lhs = avg_prices[0]
+    rhs = avg_prices[1] / avg_prices[2]
     if lhs < rhs:  # Cycle exists
         logger.info(f"Arbitrage Possibility: {loop[0]}: {lhs} < {loop[1]} / {loop[2]}: {rhs}")
         logger.info(f"{loop[1].secondary} --> {loop[0].secondary} --> {loop[0].primary}")

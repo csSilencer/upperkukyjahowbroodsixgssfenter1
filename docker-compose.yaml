@@ -1,0 +1,7 @@
+version: '3'
+services:
+  upperkuk:
+    image: "upperkuk:latest"
+    entrypoint: /bin/bash
+    build:
+      context: .

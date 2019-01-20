@@ -1,2 +1,5 @@
 .idea/
 */__pycache__/
+arb_main_logs
+macro_arb_logger
+micro_arb_logger
